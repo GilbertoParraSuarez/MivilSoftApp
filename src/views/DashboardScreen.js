@@ -1,134 +1,64 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Image } from 'react-native';
+import { View, Text, TouchableOpacity, Image } from 'react-native';
+import tw from 'twrnc';
 import UserIcon from '../icons/userIcon';
 
 const DashboardScreen = ({ navigation }) => {
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
+    <View style={tw`flex-1 bg-white p-5`}>
+      <View style={tw`flex-row items-center mb-5`}>
         <Image
           source={require('../../assets/mivilsoft.jpeg')}
-          style={styles.logo}
+          style={tw`w-25 h-25 mr-3`}
           resizeMode="contain"
         />
-        <View style={styles.userInfo}>
-          <UserIcon width={40} height={40} color="#4CAF50" style={styles.icon} />
-          <View style={styles.userTextContainer}>
-            <Text style={styles.username}>USERNAME</Text>
-            <Text style={styles.sessionTime}>INICIO DE SESIÓN: 00:00</Text>
+        <View style={tw`flex-row items-center flex-1`}>
+          <UserIcon width={40} height={40} color="#4CAF50" style={tw`mr-3`} />
+          <View>
+            <Text style={tw`text-lg font-bold text-blue-800`}>USERNAME</Text>
+            <Text style={tw`text-sm text-blue-800`}>INICIO DE SESIÓN: 00:00</Text>
           </View>
         </View>
       </View>
 
-      <View style={styles.buttonContainer}>
+      <View style={tw`flex-1 justify-center pl-2 pr-2`}>
         <TouchableOpacity 
-          style={styles.button} 
-          onPress={() => navigation.navigate('IniciarTrabajo')} // Navega a IniciarTrabajo.js
+          style={tw`bg-[#00a8e8] py-4 rounded-t-lg mb-4 w-full self-center`} 
+          onPress={() => navigation.navigate('IniciarTrabajo')}
         >
-          <Text style={styles.buttonText}>Iniciar trabajo</Text>
+          <Text style={tw`text-white text-center text-lg font-bold`}>Iniciar trabajo</Text>
         </TouchableOpacity>
         
         <TouchableOpacity 
-          style={styles.button} 
+          style={tw`bg-[#00a8e8] py-4 mb-4 w-full self-center`} 
           onPress={() => navigation.navigate('ControlSoporteScreen')}
         >
-          <Text style={styles.buttonText}>Registro técnico</Text>
+          <Text style={tw`text-white text-center text-lg font-bold`}>Registro técnico</Text>
         </TouchableOpacity>
         
         <TouchableOpacity 
-          style={styles.button} 
+          style={tw`bg-[#00a8e8] py-4 mb-4 w-full self-center`} 
           onPress={() => navigation.navigate('FinTrabajoScreen')}
         >
-          <Text style={styles.buttonText}>Terminar trabajo</Text>
+          <Text style={tw`text-white text-center text-lg font-bold`}>Terminar trabajo</Text>
         </TouchableOpacity>
         
         <TouchableOpacity 
-          style={styles.button} 
+          style={tw`bg-[#00a8e8] py-4 mb-4 w-full rounded-b-lg self-center`} 
           onPress={() => navigation.navigate('VerReporte')}
         >
-          <Text style={styles.buttonText}>Ver reporte</Text>
+          <Text style={tw`text-white text-center text-lg font-bold`}>Ver reporte</Text>
         </TouchableOpacity>
       </View>
       
       <TouchableOpacity 
-        style={styles.exitButton} 
+        style={tw`bg-[#ff6b6b] py-4 rounded-full mt-5 w-36 self-center`} 
         onPress={() => navigation.navigate('Login')}
       >
-        <Text style={styles.exitButtonText}>Salir</Text>
+        <Text style={tw`text-white text-center text-lg font-bold`}>Salir</Text>
       </TouchableOpacity>
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-    padding: 20,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  logo: {
-    width: 100,
-    height: 100,
-    marginRight: 10,
-  },
-  userInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  icon: {
-    marginRight: 10,
-  },
-  userTextContainer: {
-    flexDirection: 'column',
-    justifyContent: 'center',
-  },
-  username: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#000080',
-  },
-  sessionTime: {
-    fontSize: 14,
-    color: '#000080',
-  },
-  buttonContainer: {
-    flex: 1,
-    justifyContent: 'center',
-  },
-  button: {
-    backgroundColor: '#00a8e8',
-    paddingVertical: 15,
-    borderRadius: 25,
-    marginBottom: 15,
-    width: '80%',
-    alignSelf: 'center',
-  },
-  buttonText: {
-    color: '#fff',
-    textAlign: 'center',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  exitButton: {
-    backgroundColor: '#ff6b6b',
-    paddingVertical: 15,
-    borderRadius: 25,
-    marginTop: 20,
-    width: '80%',
-    alignSelf: 'center',
-  },
-  exitButtonText: {
-    color: '#fff',
-    textAlign: 'center',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-});
 
 export default DashboardScreen;

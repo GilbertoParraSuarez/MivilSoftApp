@@ -1,171 +1,122 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image } from 'react-native';
-import { useNavigation } from '@react-navigation/native'; // Importamos el hook useNavigation
+import { View, Text, TextInput, TouchableOpacity, Image } from 'react-native';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import { useNavigation } from '@react-navigation/native';
+import tw from 'twrnc';
+import LocationIcon from '../icons/locationIcon'; // Importar icono de ubicación
+import TimeIcon from '../icons/timeIcon'; 
+import UploadIcon from '../icons/uploadIcon'; 
 
 const ControlSoporteScreen = () => {
-  const navigation = useNavigation(); // Usamos el hook para obtener la navegación
+  const navigation = useNavigation();
 
-  const [ubicacion, setUbicacion] = useState('');
-  const [horaSoporte, setHoraSoporte] = useState('');
-  const [fotos, setFotos] = useState('');
+  const [horaSoporte, setHoraSoporte] = useState(''); 
+  const [showTimePicker, setShowTimePicker] = useState(false); 
+  const [selectedTime, setSelectedTime] = useState(new Date()); 
+
+  // Manejo de la selección de hora de soporte
+  const onTimeChange = (event, selectedTime) => {
+    const currentTime = selectedTime || new Date();
+    setShowTimePicker(Platform.OS === 'ios');
+    setSelectedTime(currentTime);
+    setHoraSoporte(currentTime.toLocaleTimeString('es-ES') || '00:00:00'); // Establece la hora en el formato de tiempo
+  };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Control de soporte técnico</Text>
-      <Text style={styles.subtitle}>Ingrese evidencias de cada soporte</Text>
+    <View style={tw`flex-1 p-5 bg-white`}>
+      <Text style={tw`text-xl font-bold text-center mb-3`}>Control de soporte técnico</Text>
+      <Text style={tw`text-sm text-center text-gray-500 mb-6`}>Ingrese evidencias de cada soporte</Text>
 
-      {/* Subir Ubicación */}
-      <View style={styles.inputContainer}>
-        <Text style={styles.label}>Subir ubicación</Text>
+      {/* Subir Ubicación con LocationIcon */}
+      <View style={tw`mb-5 pb-2 border-b border-gray-200`}>
+        <View style={tw`flex-row justify-between items-center`}>
+          <Text style={tw`text-lg font-bold mb-2`}>Subir ubicación</Text>
+          <LocationIcon width={24} height={24} /> 
+        </View>
         <Image
-          source={{ uri: 'https://via.placeholder.com/200x100' }} // Reemplazar con la imagen del mapa
-          style={styles.image}
+          source={{ uri: 'https://via.placeholder.com/200x100' }} 
+          style={tw`w-full h-40 border border-gray-300 rounded-md mb-3`}
         />
-        <View style={styles.statusRow}>
-          <Text style={styles.statusText}>Checked</Text>
-          <TouchableOpacity>
-            <Text style={styles.actionText}>Cancelar</Text>
-          </TouchableOpacity>
-          <TouchableOpacity>
-            <Text style={styles.actionText}>OK</Text>
-          </TouchableOpacity>
+        <View style={tw`flex-row justify-between`}>
+          <Text style={tw`text-base text-green-600`}>✔ Checked</Text>
+          <View style={tw`flex-row`}>
+            <TouchableOpacity>
+              <Text style={tw`text-blue-600 mr-3`}>Cancelar</Text>
+            </TouchableOpacity>
+            <TouchableOpacity>
+              <Text style={tw`text-blue-600`}>OK</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
 
       {/* Hora de Soporte */}
-      <View style={styles.inputContainer}>
-        <Text style={styles.label}>Hora de soporte</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="00:00:00"
-          value={horaSoporte}
-          onChangeText={setHoraSoporte}
-        />
-        <View style={styles.statusRow}>
-          <Text style={styles.statusText}>Checked</Text>
-          <TouchableOpacity>
-            <Text style={styles.actionText}>Cancelar</Text>
-          </TouchableOpacity>
-          <TouchableOpacity>
-            <Text style={styles.actionText}>OK</Text>
-          </TouchableOpacity>
+      <View style={tw`mb-5 pb-2 border-b border-gray-200`}>
+        <View style={tw`flex-row justify-between items-center`}>
+          <Text style={tw`text-lg font-bold mb-2`}>Hora de soporte</Text>
+          <TimeIcon width={24} height={24} />
+        </View>
+        <TouchableOpacity onPress={() => setShowTimePicker(true)}>
+          <TextInput
+            style={tw`border border-gray-300 rounded-md px-3 py-2 text-base`}
+            placeholder="00:00:00"
+            value={horaSoporte}
+            editable={false} 
+          />
+        </TouchableOpacity>
+        {showTimePicker && (
+          <DateTimePicker
+            value={selectedTime}
+            mode="time"
+            is24Hour={true} 
+            display="default"
+            onChange={onTimeChange}
+          />
+        )}
+        <View style={tw`flex-row justify-between mt-2`}>
+          <Text style={tw`text-base text-green-600`}>✔ Checked</Text>
+          <View style={tw`flex-row`}>
+            <TouchableOpacity>
+              <Text style={tw`text-blue-600 mr-3`}>Cancelar</Text>
+            </TouchableOpacity>
+            <TouchableOpacity>
+              <Text style={tw`text-blue-600`}>OK</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
 
       {/* Subir Fotos */}
-      <View style={styles.inputContainer}>
-        <Text style={styles.label}>Subir fotos</Text>
-        <TouchableOpacity style={styles.uploadButton}>
-          <Text style={styles.uploadText}>Subir archivos</Text>
+      <View style={tw`mb-5 pb-2 border-b border-gray-200`}>
+        <View style={tw`flex-row justify-between items-center`}>
+          <Text style={tw`text-lg font-bold mb-2`}>Subir fotos</Text>
+          <UploadIcon width={24} height={24} />
+        </View>
+        <TouchableOpacity style={tw`border border-gray-300 rounded-md py-4 bg-gray-100`}>
+          <Text style={tw`text-base text-gray-500 text-center`}>Subir archivos</Text>
         </TouchableOpacity>
-        <View style={styles.statusRow}>
-          <Text style={styles.statusText}>Checked</Text>
-          <TouchableOpacity>
-            <Text style={styles.actionText}>Cancelar</Text>
-          </TouchableOpacity>
-          <TouchableOpacity>
-            <Text style={styles.actionText}>OK</Text>
-          </TouchableOpacity>
+        <View style={tw`flex-row justify-between mt-2`}>
+          <Text style={tw`text-base text-green-600`}>✔ Checked</Text>
+          <View style={tw`flex-row`}>
+            <TouchableOpacity>
+              <Text style={tw`text-blue-600 mr-3`}>Cancelar</Text>
+            </TouchableOpacity>
+            <TouchableOpacity>
+              <Text style={tw`text-blue-600`}>OK</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
 
       {/* Botón de Terminar */}
       <TouchableOpacity
-        style={styles.terminateButton}
-        onPress={() => navigation.navigate('ConfirmacionScreen')} // Navegar a la pantalla de confirmación
+        style={tw`bg-blue-900 py-3 rounded-full mt-4 w-[140px] self-center`}
+        onPress={() => navigation.navigate('ConfirmacionScreen')}
       >
-        <Text style={styles.terminateButtonText}>Terminar</Text>
+        <Text style={tw`text-white text-center text-base font-bold`}>Terminar</Text>
       </TouchableOpacity>
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 20,
-    backgroundColor: '#fff',
-  },
-  title: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    textAlign: 'center',
-    marginBottom: 10,
-  },
-  subtitle: {
-    fontSize: 14,
-    textAlign: 'center',
-    marginBottom: 20,
-    color: 'gray',
-  },
-  inputContainer: {
-    marginBottom: 20,
-    paddingBottom: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-  },
-  label: {
-    fontSize: 16,
-    marginBottom: 5,
-    fontWeight: 'bold',
-    color: 'black',
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 5,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    fontSize: 16,
-    marginBottom: 5,
-  },
-  image: {
-    width: '100%',
-    height: 150,
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 5,
-    marginBottom: 5,
-  },
-  uploadButton: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 5,
-    paddingVertical: 15,
-    backgroundColor: '#f9f9f9',
-  },
-  uploadText: {
-    fontSize: 16,
-    color: 'gray',
-  },
-  statusRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginTop: 5,
-  },
-  statusText: {
-    fontSize: 16,
-    color: 'green',
-  },
-  actionText: {
-    color: '#007BFF',
-    fontSize: 14,
-  },
-  terminateButton: {
-    backgroundColor: '#000080',
-    paddingVertical: 12,
-    borderRadius: 25,
-    marginTop: 20,
-    alignItems: 'center',
-  },
-  terminateButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-});
 
 export default ControlSoporteScreen;
