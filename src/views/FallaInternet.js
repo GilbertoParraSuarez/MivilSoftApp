@@ -23,7 +23,7 @@ const FallaInternet = () => {
       </View>
 
       {/* Mensaje de Cargando */}
-      <Text style={tw`text-lg font-semibold text-gray-700 mt-5`}>CARGANDO..</Text>
+      <Text style={tw`text-lg font-semibold text-gray-700 mt-5`}>CARGANDO...</Text>
     </View>
   );
 };

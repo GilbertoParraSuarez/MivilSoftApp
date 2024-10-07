@@ -1,9 +1,22 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, Image } from 'react-native';
 import tw from 'twrnc';
 import UserIcon from '../icons/userIcon';
 
 const DashboardScreen = ({ navigation }) => {
+  const [horaSesion, setHoraSesion] = useState(''); // Estado para almacenar la hora de inicio de sesión
+
+  useEffect(() => {
+    // Obtener la hora actual cuando el componente se monta
+    const obtenerHoraActual = () => {
+      const fechaActual = new Date();
+      const hora = fechaActual.toLocaleTimeString('es-ES', { hour12: false });
+      setHoraSesion(hora); // Establece la hora en el estado
+    };
+
+    obtenerHoraActual(); // Llamar a la función para obtener la hora
+  }, []);
+
   return (
     <View style={tw`flex-1 bg-white p-5`}>
       <View style={tw`flex-row items-center mb-5`}>
@@ -16,7 +29,9 @@ const DashboardScreen = ({ navigation }) => {
           <UserIcon width={40} height={40} color="#4CAF50" style={tw`mr-3`} />
           <View>
             <Text style={tw`text-lg font-bold text-blue-800`}>USERNAME</Text>
-            <Text style={tw`text-sm text-blue-800`}>INICIO DE SESIÓN: 00:00</Text>
+            <Text style={tw`text-sm text-blue-800`}>
+              INICIO DE SESIÓN: {horaSesion}
+            </Text>
           </View>
         </View>
       </View>

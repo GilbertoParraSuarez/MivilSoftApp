@@ -20,6 +20,9 @@ const FinTrabajoScreen = () => {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [selectedTime, setSelectedTime] = useState(new Date());
   const [imageUri, setImageUri] = useState(null); // Estado para almacenar la URI de la imagen
+  const [mensajeLimite, setMensajeLimite] = useState(false); // Estado para mostrar el mensaje de límite
+
+  const maxCaracteres = 100; // Límite de caracteres para el comentario
 
   // Manejo de la selección de fecha
   const onDateChange = (event, selectedDate) => {
@@ -81,6 +84,16 @@ const FinTrabajoScreen = () => {
         setImageUri(uri); // Guarda la imagen seleccionada en el estado
       }
     });
+  };
+
+  // Función para manejar el cambio de texto en el comentario
+  const onChangeComentario = (text) => {
+    if (text.length <= maxCaracteres) {
+      setComentario(text);
+      setMensajeLimite(false); // Ocultar el mensaje si no se excede el límite
+    } else {
+      setMensajeLimite(true); // Mostrar el mensaje si se excede el límite
+    }
   };
 
   return (
@@ -191,9 +204,15 @@ const FinTrabajoScreen = () => {
             style={tw`border border-gray-300 rounded-md px-3 py-2 text-base h-20`}
             placeholder="Establecer máximo de caracteres."
             value={comentario}
-            onChangeText={setComentario}
+            onChangeText={onChangeComentario} // Manejo del cambio de texto
             multiline
           />
+          {/* Mensaje emergente si se alcanzan los 100 caracteres */}
+          {mensajeLimite && (
+            <View style={tw`absolute top-[-20px] bg-red-500 rounded p-1`}>
+              <Text style={tw`text-white text-sm`}>Has alcanzado el número máximo de caracteres</Text>
+            </View>
+          )}
           <View style={tw`flex-row justify-between mt-2`}>
             <View style={tw`flex-row items-center`}>
               <Text style={tw`text-base text-green-600`}>✔ Checked</Text>
@@ -210,13 +229,15 @@ const FinTrabajoScreen = () => {
         </View>
       </ScrollView>
 
-      {/* Botón de Terminar */}
-      <TouchableOpacity
-        style={tw`bg-blue-900 py-3 rounded-full w-[140px] self-center absolute bottom-1`} // Botón siempre en la parte inferior
-        onPress={() => navigation.navigate('ErrorCamara')}
-      >
-        <Text style={tw`text-white text-center text-base font-bold`}>Terminar</Text>
-      </TouchableOpacity>
+      {/* Botón de Terminar fijo en la parte inferior */}
+      <View style={tw`absolute bottom-0 left-0 right-0 bg-white p-5`}>
+        <TouchableOpacity
+          style={tw`bg-blue-900 py-3 rounded-full w-[140px] self-center`}
+          onPress={() => navigation.navigate('UsuarioAdvertencia')}
+        >
+          <Text style={tw`text-white text-center text-base font-bold`}>Terminar</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 };

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Image, Alert, PermissionsAndroid, ScrollView } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, Image, Alert, PermissionsAndroid, ScrollView, FlatList } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useNavigation } from '@react-navigation/native';
 import tw from 'twrnc';
@@ -14,7 +14,7 @@ const ControlSoporteScreen = () => {
   const [horaSoporte, setHoraSoporte] = useState(''); 
   const [showTimePicker, setShowTimePicker] = useState(false); 
   const [selectedTime, setSelectedTime] = useState(new Date()); 
-  const [imageUri, setImageUri] = useState(null); // Estado para almacenar la URI de la imagen
+  const [images, setImages] = useState([]); // Estado para almacenar múltiples imágenes
 
   // Manejo de la selección de hora de soporte
   const onTimeChange = (event, selectedTime) => {
@@ -65,7 +65,7 @@ const ControlSoporteScreen = () => {
         Alert.alert('Error', response.errorMessage);
       } else {
         const uri = response.assets[0].uri;
-        setImageUri(uri); // Guarda la imagen seleccionada en el estado
+        setImages([...images, uri]); // Agrega la nueva imagen al array de imágenes
       }
     });
   };
@@ -84,9 +84,15 @@ const ControlSoporteScreen = () => {
         Alert.alert('Error', response.errorMessage);
       } else {
         const uri = response.assets[0].uri;
-        setImageUri(uri); // Guarda la imagen seleccionada en el estado
+        setImages([...images, uri]); // Agrega la nueva imagen al array de imágenes
       }
     });
+  };
+
+  // Función para eliminar una imagen seleccionada
+  const removeImage = (index) => {
+    const updatedImages = images.filter((_, i) => i !== index);
+    setImages(updatedImages); // Actualiza el estado eliminando la imagen seleccionada
   };
 
   return (
@@ -168,19 +174,39 @@ const ControlSoporteScreen = () => {
               <Text style={tw`text-base text-gray-500`}>Seleccionar de galería</Text>
             </TouchableOpacity>
           </View>
-          {imageUri && (
-            <Image source={{ uri: imageUri }} style={tw`w-full h-40 mt-4`} />
+
+          {/* Mostrar las imágenes seleccionadas */}
+          {images.length > 0 && (
+            <FlatList
+              data={images}
+              horizontal
+              keyExtractor={(item, index) => index.toString()}
+              renderItem={({ item, index }) => (
+                <View style={tw`relative`}>
+                  <Image source={{ uri: item }} style={tw`w-40 h-40 m-2`} />
+                  {/* Botón para eliminar imagen */}
+                  <TouchableOpacity 
+                    style={tw`absolute top-0 right-0 bg-red-500 w-6 h-6 rounded-full items-center justify-center`} 
+                    onPress={() => removeImage(index)}
+                  >
+                    <Text style={tw`text-white text-xs`}>X</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+            />
           )}
         </View>
       </ScrollView>
 
-      {/* Botón de Terminar */}
-      <TouchableOpacity
-        style={tw`bg-blue-900 py-3 rounded-full w-[140px] self-center absolute bottom-1`} // Botón siempre en la parte inferior
-        onPress={() => navigation.navigate('ConfirmacionScreen')}
-      >
-        <Text style={tw`text-white text-center text-base font-bold`}>Terminar</Text>
-      </TouchableOpacity>
+      {/* Botón de Terminar fijo en la parte inferior */}
+      <View style={tw`absolute bottom-0 left-0 right-0 bg-white p-5`}>
+        <TouchableOpacity
+          style={tw`bg-blue-900 py-3 rounded-full w-[140px] self-center`}
+          onPress={() => navigation.navigate('ConfirmacionScreen')}
+        >
+          <Text style={tw`text-white text-center text-base font-bold`}>Terminar</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 };
