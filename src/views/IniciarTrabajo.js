@@ -1,28 +1,52 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Platform, Image, Alert, PermissionsAndroid, ScrollView } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, TextInput, TouchableOpacity, Image, Alert, ScrollView, PermissionsAndroid } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useNavigation } from '@react-navigation/native';
 import tw from 'twrnc';
-import CalendarIcon from '../icons/calendarIcon'; // Importar icono de calendario
-import TimeIcon from '../icons/timeIcon'; // Importar icono de reloj
-import UploadIcon from '../icons/uploadIcon'; // Importar icono de subir archivo
-import CommentIcon from '../icons/commentIcon'; // Importar icono de comentario
-import { launchCamera } from 'react-native-image-picker'; // Importa las funciones de image-picker
+import CalendarIcon from '../icons/calendarIcon';
+import TimeIcon from '../icons/timeIcon';
+import UploadIcon from '../icons/uploadIcon';
+import CommentIcon from '../icons/commentIcon';
+import { launchCamera } from 'react-native-image-picker';
+
 
 const IniciarTrabajo = () => {
   const navigation = useNavigation();
-
   const [fecha, setFecha] = useState('');
-  const [horaInicio, setHoraInicio] = useState('');
+  const [horaInicio, setHoraInicio] = useState(''); // Para la hora de inicio
   const [comentario, setComentario] = useState('');
   const [showDatePicker, setShowDatePicker] = useState(false);
-  const [showTimePicker, setShowTimePicker] = useState(false); // Estado para el selector de hora
+  const [showTimePicker, setShowTimePicker] = useState(false);
   const [selectedDate, setSelectedDate] = useState(new Date());
-  const [selectedTime, setSelectedTime] = useState(new Date()); // Estado para almacenar la hora seleccionada
-  const [imageUri, setImageUri] = useState(null); // Estado para almacenar la URI de la imagen
-  const [mensajeLimite, setMensajeLimite] = useState(false); // Estado para mostrar el mensaje de límite
+  const [selectedTime, setSelectedTime] = useState(new Date());
+  const [imageUri, setImageUri] = useState(null);
+  const [mensajeLimite, setMensajeLimite] = useState(false);
+  const [id, setId] = useState(''); // Almacenar el ID alfanumérico generado
 
-  const maxCaracteres = 100; // Límite de caracteres
+  const maxCaracteres = 200;
+
+  // Función para obtener la fecha actual formateada
+  const obtenerFechaActual = () => {
+    const hoy = new Date();
+    return hoy.toLocaleDateString('es-ES');
+  };
+
+  // Función para generar un ID alfanumérico único
+  const generarIdAlfanumerico = () => {
+    return Math.random().toString(36).substring(2, 10) + Math.random().toString(36).substring(2, 10);
+  };
+
+  // Función para obtener la hora actual formateada
+  const obtenerHoraActual = () => {
+    const ahora = new Date();
+    return ahora.toLocaleTimeString('es-ES', { hour12: false }); // Formato 24 horas
+  };
+
+  useEffect(() => {
+    setFecha(obtenerFechaActual());
+    setHoraInicio(obtenerHoraActual()); // Establecer la hora actual al entrar en la pantalla
+    setId(generarIdAlfanumerico()); // Generar un nuevo ID cada vez que se carga la pantalla
+  }, []);
 
   // Manejo de la selección de fecha
   const onDateChange = (event, selectedDate) => {
@@ -37,7 +61,7 @@ const IniciarTrabajo = () => {
     const currentTime = selectedTime || new Date();
     setShowTimePicker(Platform.OS === 'ios');
     setSelectedTime(currentTime);
-    setHoraInicio(currentTime.toLocaleTimeString('es-ES')); // Establece la hora en el formato de tiempo
+    setHoraInicio(currentTime.toLocaleTimeString('es-ES'));
   };
 
   // Solicitar permisos de cámara en tiempo de ejecución
@@ -113,7 +137,7 @@ const IniciarTrabajo = () => {
               style={tw`border border-gray-300 rounded-md px-3 py-2 text-base`}
               placeholder="dd/mm/yyyy"
               value={fecha}
-              editable={false}
+              editable={false} // Mostrar la fecha pero no editable
             />
           </TouchableOpacity>
           {showDatePicker && (
@@ -124,19 +148,6 @@ const IniciarTrabajo = () => {
               onChange={onDateChange}
             />
           )}
-          <View style={tw`flex-row justify-between mt-2`}>
-            <View style={tw`flex-row items-center`}>
-              <Text style={tw`text-base text-green-600`}>✔ Checked</Text>
-            </View>
-            <View style={tw`flex-row items-center`}>
-              <TouchableOpacity>
-                <Text style={tw`text-blue-600 mr-3`}>Cancelar</Text>
-              </TouchableOpacity>
-              <TouchableOpacity>
-                <Text style={tw`text-blue-600`}>OK</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
         </View>
 
         {/* Campo de Hora de Inicio */}
@@ -150,7 +161,7 @@ const IniciarTrabajo = () => {
               style={tw`border border-gray-300 rounded-md px-3 py-2 text-base`}
               placeholder="00:00:00"
               value={horaInicio}
-              editable={false} // Evita la edición directa
+              editable={false} // Mostrar pero no editable
             />
           </TouchableOpacity>
           {showTimePicker && (
@@ -162,19 +173,6 @@ const IniciarTrabajo = () => {
               onChange={onTimeChange}
             />
           )}
-          <View style={tw`flex-row justify-between mt-2`}>
-            <View style={tw`flex-row items-center`}>
-              <Text style={tw`text-base text-green-600`}>✔ Checked</Text>
-            </View>
-            <View style={tw`flex-row items-center`}>
-              <TouchableOpacity>
-                <Text style={tw`text-blue-600 mr-3`}>Cancelar</Text>
-              </TouchableOpacity>
-              <TouchableOpacity>
-                <Text style={tw`text-blue-600`}>OK</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
         </View>
 
         {/* Subir Foto */}
@@ -184,7 +182,6 @@ const IniciarTrabajo = () => {
             <UploadIcon width={24} height={24} />
           </View>
           <View style={tw`flex-row justify-around mt-2`}>
-            {/* Aumenta el ancho del botón */}
             <TouchableOpacity style={tw`border border-gray-300 rounded-md py-2 px-4 bg-gray-100 w-full`} onPress={openCamera}>
               <Text style={tw`text-base text-gray-500 text-center`}>Tomar foto</Text>
             </TouchableOpacity>
@@ -207,35 +204,22 @@ const IniciarTrabajo = () => {
             onChangeText={onChangeComentario} // Manejo del cambio de texto
             multiline
           />
-          {/* Mensaje emergente si se alcanzan los 20 caracteres */}
+          {/* Mensaje emergente si se alcanzan los 200 caracteres */}
           {mensajeLimite && (
-            <View style={tw`absolute top-[-20px] bg-red-500 rounded p-1`}>
+            <View style={tw`mt-2 bg-red-500 rounded p-1`}>
               <Text style={tw`text-white text-sm`}>Has alcanzado el número máximo de caracteres</Text>
             </View>
           )}
-          <View style={tw`flex-row justify-between mt-2`}>
-            <View style={tw`flex-row items-center`}>
-              <Text style={tw`text-base text-green-600`}>✔ Checked</Text>
-            </View>
-            <View style={tw`flex-row items-center`}>
-              <TouchableOpacity>
-                <Text style={tw`text-blue-600 mr-3`}>Cancelar</Text>
-              </TouchableOpacity>
-              <TouchableOpacity>
-                <Text style={tw`text-blue-600`}>OK</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
         </View>
       </ScrollView>
 
-      {/* Botón de Terminar fijo */}
+      {/* Botón de Enviar */}
       <View style={tw`absolute bottom-0 left-0 right-0 bg-white p-5`}>
         <TouchableOpacity
           style={tw`bg-blue-900 py-3 rounded-full w-[140px] self-center`} // Botón fijo
-          onPress={() => navigation.navigate('ConfirmacionIdScreen')}
+          onPress={() => navigation.navigate('ConfirmacionIdScreen', { horaInicio, id })} // Enviar la horaInicio y el id al confirmar
         >
-          <Text style={tw`text-white text-center text-base font-bold`}>Terminar</Text>
+          <Text style={tw`text-white text-center text-base font-bold`}>Enviar</Text>
         </TouchableOpacity>
       </View>
     </View>

@@ -3,19 +3,15 @@ import { View, Text, TouchableOpacity, Image } from 'react-native';
 import tw from 'twrnc';
 import UserIcon from '../icons/userIcon';
 
-const DashboardScreen = ({ navigation }) => {
-  const [horaSesion, setHoraSesion] = useState(''); // Estado para almacenar la hora de inicio de sesión
+const DashboardScreen = ({ route, navigation }) => {
+  const [horaSesion, setHoraSesion] = useState('00:00:00'); // Inicializamos con "00:00:00"
 
   useEffect(() => {
-    // Obtener la hora actual cuando el componente se monta
-    const obtenerHoraActual = () => {
-      const fechaActual = new Date();
-      const hora = fechaActual.toLocaleTimeString('es-ES', { hour12: false });
-      setHoraSesion(hora); // Establece la hora en el estado
-    };
-
-    obtenerHoraActual(); // Llamar a la función para obtener la hora
-  }, []);
+    // Si viene la hora de IniciarTrabajo, la actualizamos
+    if (route.params?.horaInicio) {
+      setHoraSesion(route.params.horaInicio);
+    }
+  }, [route.params?.horaInicio]);
 
   return (
     <View style={tw`flex-1 bg-white p-5`}>
@@ -36,6 +32,7 @@ const DashboardScreen = ({ navigation }) => {
         </View>
       </View>
 
+      {/* Botones de navegación */}
       <View style={tw`flex-1 justify-center pl-2 pr-2`}>
         <TouchableOpacity 
           style={tw`bg-[#00a8e8] py-4 rounded-t-lg mb-4 w-full self-center`} 
@@ -66,6 +63,7 @@ const DashboardScreen = ({ navigation }) => {
         </TouchableOpacity>
       </View>
       
+      {/* Botón de salir */}
       <TouchableOpacity 
         style={tw`bg-[#ff6b6b] py-4 rounded-full mt-5 w-36 self-center`} 
         onPress={() => navigation.navigate('Login')}

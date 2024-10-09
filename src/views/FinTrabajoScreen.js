@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, Platform, Image, Alert, PermissionsAndroid, ScrollView } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useNavigation } from '@react-navigation/native';
@@ -22,7 +22,25 @@ const FinTrabajoScreen = () => {
   const [imageUri, setImageUri] = useState(null); // Estado para almacenar la URI de la imagen
   const [mensajeLimite, setMensajeLimite] = useState(false); // Estado para mostrar el mensaje de límite
 
-  const maxCaracteres = 100; // Límite de caracteres para el comentario
+  const maxCaracteres = 200; // Límite de caracteres para el comentario
+
+  // Función para obtener la fecha actual
+  const obtenerFechaActual = () => {
+    const hoy = new Date();
+    return hoy.toLocaleDateString('es-ES');
+  };
+
+    // Función para obtener la hora actual formateada
+    const obtenerHoraActual = () => {
+      const ahora = new Date();
+      return ahora.toLocaleTimeString('es-ES', { hour12: false }); // Formato 24 horas
+    };
+
+  // Al cargar el componente, establecemos la fecha actual como predeterminada
+  useEffect(() => {
+    setFecha(obtenerFechaActual());
+    setHoraFinalizacion(obtenerHoraActual()); // Establecer la hora actual al entrar en la pantalla
+  }, []);
 
   // Manejo de la selección de fecha
   const onDateChange = (event, selectedDate) => {
@@ -124,19 +142,6 @@ const FinTrabajoScreen = () => {
               onChange={onDateChange}
             />
           )}
-          <View style={tw`flex-row justify-between mt-2`}>
-            <View style={tw`flex-row items-center`}>
-              <Text style={tw`text-base text-green-600`}>✔ Checked</Text>
-            </View>
-            <View style={tw`flex-row items-center`}>
-              <TouchableOpacity>
-                <Text style={tw`text-blue-600 mr-3`}>Cancelar</Text>
-              </TouchableOpacity>
-              <TouchableOpacity>
-                <Text style={tw`text-blue-600`}>OK</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
         </View>
 
         {/* Campo de Hora de Finalización */}
@@ -162,19 +167,6 @@ const FinTrabajoScreen = () => {
               onChange={onTimeChange}
             />
           )}
-          <View style={tw`flex-row justify-between mt-2`}>
-            <View style={tw`flex-row items-center`}>
-              <Text style={tw`text-base text-green-600`}>✔ Checked</Text>
-            </View>
-            <View style={tw`flex-row items-center`}>
-              <TouchableOpacity>
-                <Text style={tw`text-blue-600 mr-3`}>Cancelar</Text>
-              </TouchableOpacity>
-              <TouchableOpacity>
-                <Text style={tw`text-blue-600`}>OK</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
         </View>
 
         {/* Subir Foto */}
@@ -209,23 +201,10 @@ const FinTrabajoScreen = () => {
           />
           {/* Mensaje emergente si se alcanzan los 100 caracteres */}
           {mensajeLimite && (
-            <View style={tw`absolute top-[-20px] bg-red-500 rounded p-1`}>
+            <View style={tw`mt-2 bg-red-500 rounded p-1`}>
               <Text style={tw`text-white text-sm`}>Has alcanzado el número máximo de caracteres</Text>
             </View>
           )}
-          <View style={tw`flex-row justify-between mt-2`}>
-            <View style={tw`flex-row items-center`}>
-              <Text style={tw`text-base text-green-600`}>✔ Checked</Text>
-            </View>
-            <View style={tw`flex-row items-center`}>
-              <TouchableOpacity>
-                <Text style={tw`text-blue-600 mr-3`}>Cancelar</Text>
-              </TouchableOpacity>
-              <TouchableOpacity>
-                <Text style={tw`text-blue-600`}>OK</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
         </View>
       </ScrollView>
 
@@ -233,9 +212,9 @@ const FinTrabajoScreen = () => {
       <View style={tw`absolute bottom-0 left-0 right-0 bg-white p-5`}>
         <TouchableOpacity
           style={tw`bg-blue-900 py-3 rounded-full w-[140px] self-center`}
-          onPress={() => navigation.navigate('UsuarioAdvertencia')}
+          onPress={() => navigation.navigate('ConfirmacionScreen')}
         >
-          <Text style={tw`text-white text-center text-base font-bold`}>Terminar</Text>
+          <Text style={tw`text-white text-center text-base font-bold`}>Enviar</Text>
         </TouchableOpacity>
       </View>
     </View>

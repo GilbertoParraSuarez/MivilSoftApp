@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, Image } from 'react-native';
 import tw from 'twrnc';
 
 const ConfirmacionIdScreen = ({ route, navigation }) => {
-  const { id } = route.params || {};
+  const { id, horaInicio } = route.params || {}; // Obtenemos tanto el ID como la hora de inicio
 
   return (
     <View style={tw`flex-1 justify-center items-center bg-white p-5`}>
@@ -26,11 +26,14 @@ const ConfirmacionIdScreen = ({ route, navigation }) => {
         <Text style={tw`text-base text-gray-700 mb-5`}>
           ID: {id || 'ID no disponible'}
         </Text>
+        <Text style={tw`text-base text-gray-700 mb-5`}>
+          Hora de Inicio: {horaInicio || 'Hora no disponible'}
+        </Text>
 
         {/* Botón para regresar al menú principal */}
         <TouchableOpacity
           style={tw`bg-[#00a8e8] py-3 px-6 rounded-full`}
-          onPress={() => navigation.navigate('Dashboard')}
+          onPress={() => navigation.navigate('Dashboard', { horaInicio })} // Pasamos la hora de inicio al DashboardScreen
         >
           <Text style={tw`text-white text-base font-bold`}>Regresar al menú </Text>
         </TouchableOpacity>
