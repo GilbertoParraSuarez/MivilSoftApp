@@ -209,21 +209,31 @@ const IniciarTrabajo = () => {
             <Text style={tw`text-base font-bold mb-1`}>Subir foto</Text>
             <UploadIcon width={24} height={24} />
           </View>
-          <View style={tw`flex-row justify-around mt-2`}>
-            <TouchableOpacity style={tw`border border-gray-300 rounded-md py-2 px-4 bg-gray-100 w-full`} onPress={openCamera}>
-              <Text style={tw`text-base text-gray-500 text-center`}>Tomar foto</Text>
+
+          {/* Botón "Tomar foto" centrado */}
+          <View style={tw`flex-row justify-center mt-2`}>
+            <TouchableOpacity style={tw`border border-gray-200 rounded-md py-4 bg-gray-100 w-full items-center`} onPress={openCamera}>
+              <Text style={tw`text-base text-gray-500`}>Tomar foto</Text>
             </TouchableOpacity>
           </View>
+
+          {/* Imagen capturada con el filtro en el centro */}
           {imageUri && (
-            <ViewShot ref={viewShotRef} options={{ format: 'jpg', quality: 0.9 }} style={{ marginBottom: 20, position: 'relative' }}>
-              <Image source={{ uri: imageUri }} style={tw`w-full h-40 mt-4`} />
+            <ViewShot ref={viewShotRef} options={{ format: 'jpg', quality: 0.9 }} style={tw`w-full h-48 mt-4 relative`}>
+              <Image source={{ uri: imageUri }} style={tw`w-full h-full rounded-md`} />
+              <TouchableOpacity
+                style={tw`absolute top-1 right-1 bg-red-500 w-6 h-6 rounded-full items-center justify-center`}
+                onPress={() => setImageUri(null)} // Eliminar la imagen
+              >
+                <Text style={tw`text-white text-xs`}>X</Text>
+              </TouchableOpacity>
               {/* Texto superpuesto sobre la imagen */}
-              <View style={{ position: 'absolute', bottom: 0, left: 10, right: 10, backgroundColor: 'rgba(0, 0, 0, 0.5)', padding: 10 }}>
-                <Text style={{ color: 'white', fontSize: 16, fontWeight: 'bold' }}>Fecha: {fecha}</Text>
-                <Text style={{ color: 'white', fontSize: 16, fontWeight: 'bold' }}>Hora: {horaInicio}</Text>
+              <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: 'rgba(0, 0, 0, 0.5)', padding: 5 }}>
+                <Text style={{ color: 'white', fontSize: 12, fontWeight: 'bold' }}>Fecha: {fecha}</Text>
+                <Text style={{ color: 'white', fontSize: 12, fontWeight: 'bold' }}>Hora: {horaInicio}</Text>
                 {ubicacion && (
-                  <Text style={{ color: 'white', fontSize: 16, fontWeight: 'bold' }}>
-                    Lat: {ubicacion.latitude}, Long: {ubicacion.longitude}
+                  <Text style={{ color: 'white', fontSize: 12, fontWeight: 'bold' }}>
+                    Lat: {ubicacion.latitude.toFixed(6)}, Long: {ubicacion.longitude.toFixed(6)}
                   </Text>
                 )}
               </View>
@@ -263,6 +273,7 @@ const IniciarTrabajo = () => {
       </View>
     </View>
   );
+
 };
 
 export default IniciarTrabajo;

@@ -30,6 +30,11 @@ const ControlSoporteScreen = () => {
     const ahora = new Date();
     return ahora.toLocaleTimeString('es-ES', { hour12: false }); // Formato 24 horas
   };
+
+  const removeImage = (index) => {
+    setImages(images.filter((_, i) => i !== index));
+  };
+  
   // Solicitar permisos de cámara en tiempo de ejecución
   const requestCameraPermission = async () => {
     try {
@@ -124,11 +129,11 @@ const ControlSoporteScreen = () => {
       (position) => {
         const { latitude, longitude } = position.coords;
         setLocation({ latitude, longitude });
-        setLoading(false); // Deja de cargar cuando se obtiene la ubicación
+        setLoading(false); 
       },
       (error) => {
         Alert.alert("Error obteniendo la ubicación", error.message);
-        setLoading(false); // Deja de cargar aunque ocurra un error
+        setLoading(false);
       },
       { enableHighAccuracy: true, timeout: 20000, maximumAge: 1000 }
     );
@@ -140,6 +145,7 @@ const ControlSoporteScreen = () => {
   }, []);
 
   // Código JS para OpenStreetMap con marcador movible
+  // JavaScript para OpenStreetMap con botón de geolocalización en la esquina superior derecha del mapa
   const injectedJavaScript = `
     var map = L.map('map').setView([${location ? location.latitude : 0}, ${location ? location.longitude : 0}], 18);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -150,17 +156,59 @@ const ControlSoporteScreen = () => {
       draggable: true
     }).addTo(map);
 
-    marker.on('dragend', function (e) {
-      var latlng = marker.getLatLng();
-      window.ReactNativeWebView.postMessage(JSON.stringify({ latitude: latlng.lat, longitude: latlng.lng }));
+    function centerMap(lat, lng) {
+      map.setView(new L.LatLng(lat, lng), 18);
+      marker.setLatLng([lat, lng]);
+    }
+
+    // Manejo de eventos para arrastre del marcador
+    marker.on('dragstart', function (e) {
+      marker.setOpacity(0.7); // Marca el pin como semitransparente mientras se arrastra
     });
+
+    marker.on('drag', function (e) {
+      marker.setOpacity(0.7); // Mantener el pin semitransparente durante el arrastre
+    });
+
+    marker.on('dragend', function (e) {
+      marker.setOpacity(1); // Restaurar opacidad al soltar
+      var latlng = marker.getLatLng();
+
+      // Agregar un pequeño retraso antes de fijar la ubicación
+      setTimeout(() => {
+        window.ReactNativeWebView.postMessage(JSON.stringify({ latitude: latlng.lat, longitude: latlng.lng }));
+      }, 500); // Retraso de 500 ms
+    });
+
+    // Crear botón de geolocalización en la esquina superior derecha del mapa
+    var locateButton = L.control({position: 'topright'});
+    locateButton.onAdd = function(map) {
+      var div = L.DomUtil.create('div', 'leaflet-bar leaflet-control leaflet-control-custom');
+      div.innerHTML = '<button style="background-color: white; border: none; cursor: pointer; padding: 8px;">📍</button>';
+      div.onclick = function() {
+        window.ReactNativeWebView.postMessage(JSON.stringify({ action: 'locate' }));
+      };
+      return div;
+    };
+    locateButton.addTo(map);
   `;
 
-  const handleMessage = (event) => {
-    const data = JSON.parse(event.nativeEvent.data);
+const handleMessage = (event) => {
+  const data = JSON.parse(event.nativeEvent.data);
+
+  if (data.action === 'locate') {
+    if (location) {
+      // Si se recibe el evento "locate", centramos el mapa en la ubicación actual
+      this.webviewRef.injectJavaScript(`centerMap(${location.latitude}, ${location.longitude});`);
+    } else {
+      Alert.alert('Ubicación no disponible', 'Intenta obtener la ubicación nuevamente.');
+    }
+  } else {
+    // Si es un cambio de marcador
     setNewLocation({ latitude: data.latitude, longitude: data.longitude });
     Alert.alert(`Nueva ubicación fijada`, `Latitud: ${data.latitude}, Longitud: ${data.longitude}`);
-  };
+  }
+};
 
   // Manejo de la selección de hora de soporte
   const onTimeChange = (event, selectedTime) => {
@@ -182,52 +230,56 @@ const ControlSoporteScreen = () => {
 
   return (
     <View style={tw`flex-1 bg-white`}>
-      <ScrollView contentContainerStyle={tw`p-5 pb-20`}>
-        <Text style={tw`text-xl font-bold text-center mb-3`}>Control de soporte técnico</Text>
-        <Text style={tw`text-sm text-center text-gray-500 mb-6`}>Ingrese evidencias de cada soporte</Text>
-
-        {/* Subir Ubicación con LocationIcon */}
-        <View style={tw`mb-5 pb-2 border-b border-gray-200`}>
-          <View style={tw`flex-row justify-between items-center`}>
-            <Text style={tw`text-lg font-bold mb-2`}>Subir ubicación</Text>
-            <LocationIcon width={24} height={24} />
-          </View>
-          {loading ? (
-            <ActivityIndicator size="large" color="#0000ff" />
-          ) : (
-            <View style={tw`h-60 w-full mb-5`}>
-              <WebView
-                style={tw`w-full h-full`}
-                originWhitelist={['*']}
-                source={{
-                  html: `
-                    <!DOCTYPE html>
-                    <html>
-                    <head>
-                      <title>Mapa</title>
-                      <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                      <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
-                      <style>
-                        #map { height: 100vh; width: 100vw; }
-                      </style>
-                    </head>
-                    <body>
-                      <div id="map"></div>
-                      <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
-                      <script>
-                        ${injectedJavaScript}
-                      </script>
-                    </body>
-                    </html>
-                  `,
-                }}
-                injectedJavaScript={injectedJavaScript}
-                onMessage={handleMessage}
-              />
-            </View>
-          )}
-        </View>
-
+      {/* Título y Descripción */}
+      <Text style={tw`text-xl font-bold text-center mt-5 mb-1`}>Control de soporte técnico</Text>
+      <Text style={tw`text-sm text-center text-gray-500 mb-5`}>Ingrese evidencias de cada soporte</Text>
+  
+      {/* Mapa independiente de ScrollView */}
+      <View style={tw`h-60 w-full mb-5 px-5`}>
+        {loading ? (
+          <ActivityIndicator size="large" color="#0000ff" />
+        ) : (
+          <WebView
+            ref={(ref) => { this.webviewRef = ref; }}
+            style={tw`w-full h-full rounded-md`} // Se agregó `rounded-md` para un borde redondeado
+            originWhitelist={['*']}
+            source={{
+              html: `
+                <!DOCTYPE html>
+                <html>
+                <head>
+                  <title>Mapa</title>
+                  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+                  <style>
+                    #map { height: 100vh; width: 100vw; border-radius: 8px; }
+                    .leaflet-control-custom {
+                      background-color: white;
+                      border: 2px solid #ccc;
+                      padding: 5px;
+                      cursor: pointer;
+                      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+                    }
+                  </style>
+                </head>
+                <body>
+                  <div id="map"></div>
+                  <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+                  <script>
+                    ${injectedJavaScript}
+                  </script>
+                </body>
+                </html>
+              `,
+            }}
+            injectedJavaScript={injectedJavaScript}
+            onMessage={handleMessage}
+          />
+        )}
+      </View>
+  
+      {/* ScrollView para los elementos debajo del mapa */}
+      <ScrollView contentContainerStyle={tw`px-5 pb-20`}>
         {/* Hora de Soporte */}
         <View style={tw`mb-5 pb-2 border-b border-gray-200`}>
           <View style={tw`flex-row justify-between items-center`}>
@@ -252,7 +304,7 @@ const ControlSoporteScreen = () => {
             />
           )}
         </View>
-
+  
         {/* Subir Fotos */}
         <View style={tw`mb-5 pb-2 border-b border-gray-200`}>
           <View style={tw`flex-row justify-between items-center`}>
@@ -267,7 +319,7 @@ const ControlSoporteScreen = () => {
               <Text style={tw`text-base text-gray-500`}>Seleccionar de galería</Text>
             </TouchableOpacity>
           </View>
-
+  
           {/* Mostrar las imágenes seleccionadas */}
           {images.length > 0 && (
             <FlatList
@@ -288,7 +340,7 @@ const ControlSoporteScreen = () => {
             />
           )}
         </View>
-
+  
         {/* Comentario */}
         <View style={tw`mb-5 pb-2 border-b border-gray-200`}>
           <View style={tw`flex-row justify-between items-center`}>
@@ -309,7 +361,7 @@ const ControlSoporteScreen = () => {
           )}
         </View>
       </ScrollView>
-
+  
       {/* Botón de Terminar */}
       <View style={tw`absolute bottom-0 left-0 right-0 bg-white p-5`}>
         <TouchableOpacity
@@ -321,6 +373,7 @@ const ControlSoporteScreen = () => {
       </View>
     </View>
   );
+  
 };
 
 export default ControlSoporteScreen;
