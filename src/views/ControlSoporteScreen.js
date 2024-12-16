@@ -10,6 +10,8 @@ import UploadIcon from '../icons/uploadIcon';
 import CommentIcon from '../icons/commentIcon';
 import WebView from 'react-native-webview'; // Para OpenStreetMap
 import Geolocation from 'react-native-geolocation-service';
+import axios from 'axios'; // Añadido para obtener hora NTP
+
 
 const ControlSoporteScreen = () => {
   const navigation = useNavigation();
@@ -24,7 +26,11 @@ const ControlSoporteScreen = () => {
   const [location, setLocation] = useState(null); // Estado para la ubicación
   const [loading, setLoading] = useState(true); // Estado para manejar el indicador de carga
   const [newLocation, setNewLocation] = useState(null); // Nueva ubicación fijada
+  const [locationReal, setLocationReal] = useState(null); // Ubicación real del usuario
+  const umbralMetros = 5000; // 5 kilómetros en metros
 
+
+  
   // Función para obtener la hora actual formateada
   const obtenerHoraActual = () => {
     const ahora = new Date();
@@ -128,95 +134,235 @@ const ControlSoporteScreen = () => {
     Geolocation.getCurrentPosition(
       (position) => {
         const { latitude, longitude } = position.coords;
-        setLocation({ latitude, longitude });
-        setLoading(false); 
-      },
-      (error) => {
-        Alert.alert("Error obteniendo la ubicación", error.message);
+        console.log('Ubicación Real obtenida correctamente:', latitude, longitude);
+        setLocationReal({ latitude, longitude }); // Actualiza la ubicación real
         setLoading(false);
       },
-      { enableHighAccuracy: true, timeout: 20000, maximumAge: 1000 }
+      (error) => {
+        console.error('Error al obtener la ubicación:', error.code, error.message);
+        Alert.alert('Error', `No se pudo obtener la ubicación. Código: ${error.code}, Mensaje: ${error.message}`);
+        setLoading(false);
+      },
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 1000 }
     );
   };
+  
 
   useEffect(() => {   
     requestLocationPermission();
     setHoraSoporte(obtenerHoraActual());
+    obtenerHoraNTP(); // Llamamos a la función para verificar la hora NTP
   }, []);
 
-  // Código JS para OpenStreetMap con marcador movible
-  // JavaScript para OpenStreetMap con botón de geolocalización en la esquina superior derecha del mapa
-  const injectedJavaScript = `
-    var map = L.map('map').setView([${location ? location.latitude : 0}, ${location ? location.longitude : 0}], 18);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-    }).addTo(map);
-
-    var marker = L.marker([${location ? location.latitude : 0}, ${location ? location.longitude : 0}], {
-      draggable: true
-    }).addTo(map);
-
-    function centerMap(lat, lng) {
-      map.setView(new L.LatLng(lat, lng), 18);
-      marker.setLatLng([lat, lng]);
+  useEffect(() => {
+    console.log('Ubicación Real obtenida:', locationReal);
+    if (locationReal && !newLocation) {
+      console.log('Asignando locationReal a newLocation');
+      setNewLocation(locationReal); // Asigna la ubicación real si newLocation no tiene valor
     }
+  }, [locationReal]);
+  
+  const injectedJavaScript = `  
+  var lat = ${location ? location.latitude : 37.4219983};  // Coordenada predeterminada si no hay ubicación real  
+  var lon = ${location ? location.longitude : -122.084};
 
-    // Manejo de eventos para arrastre del marcador
-    marker.on('dragstart', function (e) {
-      marker.setOpacity(0.7); // Marca el pin como semitransparente mientras se arrastra
-    });
+  // Inicializa el mapa con coordenadas predeterminadas o la ubicación real
+  var map = L.map('map').setView([lat, lon], 18);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+  }).addTo(map);
 
-    marker.on('drag', function (e) {
-      marker.setOpacity(0.7); // Mantener el pin semitransparente durante el arrastre
-    });
+  // Inicializa el marcador en la ubicación real o predeterminada
+  var marker = L.marker([lat, lon], {
+    draggable: true
+  }).addTo(map);
 
-    marker.on('dragend', function (e) {
-      marker.setOpacity(1); // Restaurar opacidad al soltar
-      var latlng = marker.getLatLng();
+  // Función para centrar el mapa y mover el marcador a una ubicación específica
+  function centerMap(lat, lng) {
+    map.setView(new L.LatLng(lat, lng), 18);
+    marker.setLatLng([lat, lng]);
+  }
 
-      // Agregar un pequeño retraso antes de fijar la ubicación
-      setTimeout(() => {
-        window.ReactNativeWebView.postMessage(JSON.stringify({ latitude: latlng.lat, longitude: latlng.lng }));
-      }, 500); // Retraso de 500 ms
-    });
+  // Manejo de eventos para arrastre del marcador
+  marker.on('dragstart', function (e) {
+    marker.setOpacity(0.7); // Marca el pin como semitransparente mientras se arrastra
+  });
 
-    // Crear botón de geolocalización en la esquina superior derecha del mapa
-    var locateButton = L.control({position: 'topright'});
-    locateButton.onAdd = function(map) {
-      var div = L.DomUtil.create('div', 'leaflet-bar leaflet-control leaflet-control-custom');
-      div.innerHTML = '<button style="background-color: white; border: none; cursor: pointer; padding: 8px;">📍</button>';
-      div.onclick = function() {
-        window.ReactNativeWebView.postMessage(JSON.stringify({ action: 'locate' }));
-      };
-      return div;
+  marker.on('drag', function (e) {
+    marker.setOpacity(0.7); // Mantener el pin semitransparente durante el arrastre
+  });
+
+  marker.on('dragend', function (e) {
+    marker.setOpacity(1); // Restaurar opacidad al soltar
+    var latlng = marker.getLatLng();
+
+    // Agregar un pequeño retraso antes de fijar la ubicación
+    setTimeout(() => {
+      window.ReactNativeWebView.postMessage(JSON.stringify({ latitude: latlng.lat, longitude: latlng.lng }));
+    }, 500); // Retraso de 500 ms
+  });
+
+  // Crear botón de geolocalización en la esquina superior derecha del mapa
+  var locateButton = L.control({position: 'topright'});
+  locateButton.onAdd = function(map) {
+    var div = L.DomUtil.create('div', 'leaflet-bar leaflet-control leaflet-control-custom');
+    div.innerHTML = '<button style="background-color: white; border: none; cursor: pointer; padding: 8px;">📍</button>';
+    div.onclick = function() {
+      window.ReactNativeWebView.postMessage(JSON.stringify({ action: 'locate' }));
     };
-    locateButton.addTo(map);
-  `;
+    return div;
+  };
+  locateButton.addTo(map);
+
+  // Nueva funcionalidad: Si React Native envía coordenadas reales, centra el mapa
+  window.addEventListener('message', function(event) {
+    try {
+      var data = JSON.parse(event.data);
+      if (data.latitude && data.longitude) {
+        console.log('Centrando mapa en:', data.latitude, data.longitude);
+        centerMap(data.latitude, data.longitude);
+      }
+    } catch (error) {
+      console.error('Error procesando mensaje:', error);
+    }
+  });
+`;
 
 const handleMessage = (event) => {
-  const data = JSON.parse(event.nativeEvent.data);
+  try {
+    console.log('Mensaje recibido del WebView:', event.nativeEvent.data);
+    const data = JSON.parse(event.nativeEvent.data);
 
-  if (data.action === 'locate') {
-    if (location) {
-      // Si se recibe el evento "locate", centramos el mapa en la ubicación actual
-      this.webviewRef.injectJavaScript(`centerMap(${location.latitude}, ${location.longitude});`);
+    if (data.latitude && data.longitude) {
+      setNewLocation({ latitude: data.latitude, longitude: data.longitude });
+      console.log('Ubicación ingresada en el mapa:', { latitude: data.latitude, longitude: data.longitude });
     } else {
-      Alert.alert('Ubicación no disponible', 'Intenta obtener la ubicación nuevamente.');
+      console.warn('Datos inválidos recibidos desde el mapa:', data);
     }
-  } else {
-    // Si es un cambio de marcador
-    setNewLocation({ latitude: data.latitude, longitude: data.longitude });
-    Alert.alert(`Nueva ubicación fijada`, `Latitud: ${data.latitude}, Longitud: ${data.longitude}`);
+  } catch (error) {
+    console.error('Error al manejar el mensaje del WebView:', error);
   }
 };
 
+const calcularDistancia = (coord1, coord2) => {
+  const toRadians = (degrees) => (degrees * Math.PI) / 180;
+  const R = 6371; // Radio de la Tierra en km
+
+  const dLat = toRadians(coord2.latitude - coord1.latitude);
+  const dLon = toRadians(coord2.longitude - coord1.longitude);
+
+  const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos(toRadians(coord1.latitude)) * Math.cos(toRadians(coord2.latitude)) *
+            Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+  return R * c * 1000; // Devuelve distancia en metros
+};
+
+
+const handleEnviar = async () => {
+  try {
+    console.log('Ubicación Real:', locationReal);
+    console.log('Ubicación Ingresada:', newLocation);
+
+    if (!locationReal || !newLocation) {
+      Alert.alert('Error', 'No se pudieron obtener ambas ubicaciones.');
+      return;
+    }
+
+    // Cálculo de distancia
+    const distancia = calcularDistancia(locationReal, newLocation);
+    console.log(`Distancia entre ubicaciones: ${distancia.toFixed(2)} metros`);
+
+    const umbralMetros = 5000; // 5 kilómetros
+    if (distancia > umbralMetros) {
+      console.warn('¡Advertencia! La ubicación ingresada difiere significativamente de la ubicación real.');
+    } else {
+      console.log('Las ubicaciones coinciden dentro del rango aceptable.');
+    }
+
+    // Lógica original de hora NTP
+    const response = await axios.get('http://timeapi.io/api/Time/current/zone?timeZone=UTC');
+    const horaNTP = new Date(response.data.dateTime);
+    const diferenciaMs = Math.abs(selectedTime - horaNTP);
+    const diferenciaMinutos = diferenciaMs / 1000 / 60;
+
+    console.log('Hora NTP:', horaNTP);
+    console.log('Hora de soporte seleccionada:', selectedTime);
+    console.log(`Diferencia en minutos: ${diferenciaMinutos}`);
+
+    if (diferenciaMinutos > 1) {
+      console.warn('¡Advertencia! La hora difiere de la hora global.');
+    } else {
+      console.log('Las horas coinciden.');
+    }
+
+    navigation.navigate('ConfirmacionScreen');
+  } catch (error) {
+    console.error('Error en handleEnviar:', error);
+    Alert.alert('Error', 'Ocurrió un problema al procesar la información.');
+  }
+};
+
+
+const obtenerHoraNTP = async () => {
+  try {
+    const response = await axios.get('http://timeapi.io/api/Time/current/zone?timeZone=UTC');
+    console.log('Respuesta de la API:', response.data); // Imprimir la respuesta completa para verificar el formato
+
+    // Usamos una propiedad diferente dependiendo de la respuesta
+    const horaNTP = response.data.dateTime; // Verifica si esta propiedad existe en la respuesta
+
+    // Asegúrate de que 'horaNTP' sea un valor válido
+    if (!horaNTP) {
+      throw new Error('No se pudo obtener la hora de la respuesta');
+    }
+
+    // Convertimos la hora en formato ISO a un objeto Date
+    const horaNTPObj = new Date(horaNTP);
+    console.log('Hora NTP:', horaNTPObj);
+
+    // Si la hora NTP no es válida (NaN), lanzamos un error
+    if (isNaN(horaNTPObj)) {
+      throw new Error('La hora NTP es inválida');
+    }
+
+    // Llamamos a la función para comparar las horas
+    const horaLocal = new Date();  // Hora local del dispositivo
+    console.log('Hora local:', horaLocal);
+
+    compararHoras(horaLocal, horaNTPObj); // Llamamos a la función compararHoras
+  } catch (error) {
+    console.error('Error al obtener la hora NTP:', error);
+  }
+};
+
+// Función para comparar la hora local y la hora del servidor NTP
+const compararHoras = (horaLocal, horaNTP) => {
+  // Calculamos la diferencia entre las dos horas en milisegundos
+  const diferenciaEnMs = Math.abs(horaLocal - horaNTP);  // Usamos Math.abs() para obtener el valor absoluto
+
+  // Convertimos la diferencia de milisegundos a minutos
+  const diferenciaEnMinutos = diferenciaEnMs / 1000 / 60; // Dividimos entre 1000 (segundos) y entre 60 (minutos)
+
+  // Si la diferencia es mayor a 1 minuto, mostramos un mensaje
+  if (diferenciaEnMinutos > 1) {
+    console.warn('¡Advertencia! La hora local ha sido modificada.');
+    console.log(`Hora local: ${horaLocal}`);
+    console.log(`Hora NTP: ${horaNTP}`);
+  } else {
+    console.log('Las horas son consistentes');
+  }
+};
   // Manejo de la selección de hora de soporte
-  const onTimeChange = (event, selectedTime) => {
-    const currentTime = selectedTime || new Date();
-    setShowTimePicker(Platform.OS === 'ios');
-    setSelectedTime(currentTime);
-    setHoraSoporte(currentTime.toLocaleTimeString('es-ES') || '00:00:00');
+  const onTimeChange = (event, time) => {
+    setShowTimePicker(false);
+    if (time) {
+      setSelectedTime(time);
+      setHoraSoporte(time.toLocaleTimeString('es-ES'));
+    }
   };
+  
 
   // Función para manejar el cambio de texto en el comentario
   const onChangeComentario = (text) => {
@@ -366,7 +512,7 @@ const handleMessage = (event) => {
       <View style={tw`absolute bottom-0 left-0 right-0 bg-white p-5`}>
         <TouchableOpacity
           style={tw`bg-blue-900 py-3 rounded-full w-[140px] self-center`}
-          onPress={() => navigation.navigate('ConfirmacionScreen')}
+          onPress={handleEnviar}
         >
           <Text style={tw`text-white text-center text-base font-bold`}>Enviar</Text>
         </TouchableOpacity>

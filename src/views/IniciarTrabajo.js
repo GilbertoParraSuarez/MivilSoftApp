@@ -11,6 +11,11 @@ import { launchCamera } from 'react-native-image-picker';
 import ViewShot from 'react-native-view-shot';
 import RNFS from 'react-native-fs';
 import Geolocation from 'react-native-geolocation-service';
+import NetInfo from '@react-native-community/netinfo';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import axios from 'axios'; // Añadido para obtener hora NTP
+
+
 
 const IniciarTrabajo = () => {
   const navigation = useNavigation();
@@ -26,6 +31,9 @@ const IniciarTrabajo = () => {
   const viewShotRef = useRef(); // Referencia para ViewShot
   const [mensajeLimite, setMensajeLimite] = useState(false);
   const [id, setId] = useState('');
+  const [lastConnectionState, setLastConnectionState] = useState(null);
+  const [datosGuardadosEnCache, setDatosGuardadosEnCache] = useState(false);
+  const [conectadoAnteriormente, setConectadoAnteriormente] = useState(true); 
 
   const maxCaracteres = 200;
 
@@ -63,11 +71,157 @@ const IniciarTrabajo = () => {
   };
 
   useEffect(() => {
+    const inicializarEstadoConexion = async () => {
+      const estadoInicial = await NetInfo.fetch();
+      setLastConnectionState(estadoInicial.isConnected);
+      setConectadoAnteriormente(estadoInicial.isConnected);
+    };
+    inicializarEstadoConexion();
+  
+    const unsubscribe = NetInfo.addEventListener(state => {
+      if (state.isConnected !== lastConnectionState) {
+        if (!state.isConnected && conectadoAnteriormente) { 
+          console.log('Detectada pérdida de conexión'); // Mensaje de verificación
+          guardarDatosEnCache();
+          setDatosGuardadosEnCache(true);
+          setConectadoAnteriormente(false); // Cambia a desconectado
+        } else if (state.isConnected && !conectadoAnteriormente) {
+          console.log('Conexión restablecida');
+          enviarDatosGuardados();
+          setDatosGuardadosEnCache(false);
+          setConectadoAnteriormente(true); // Cambia a conectado
+        }
+        setLastConnectionState(state.isConnected);
+      }
+    });
+
     setFecha(obtenerFechaActual());
     setHoraInicio(obtenerHoraActual());
-    setId(generarIdAlfanumerico());
-    obtenerUbicacion(); // Obtener la ubicación al iniciar
-  }, []);
+    obtenerUbicacion();
+    obtenerHoraNTP(); // Llamamos a la función para verificar la hora NTP
+  
+    return () => unsubscribe();
+  }, [lastConnectionState, conectadoAnteriormente]);
+  
+
+  // Función para guardar los datos en caché usando AsyncStorage
+  const guardarDatosEnCache = async () => {
+    console.log('Intentando guardar en caché tras pérdida de conexión'); // Confirmación de llamada
+  
+    const datos = {
+      fecha: fecha || '',
+      horaInicio: horaInicio || '',
+      comentario: comentario || '',
+      ubicacion: ubicacion || null,
+      imageUri: imageUri || null,
+    };
+  
+    try {
+      await AsyncStorage.setItem('@datos_formulario', JSON.stringify(datos));
+      console.log('Datos guardados en caché con éxito:', datos); // Confirmación de éxito
+    } catch (error) {
+      console.error('Error al guardar en caché:', error);
+    }
+  };
+  
+  
+
+  // Función para enviar los datos guardados en caché
+  const enviarDatosGuardados = async () => {
+    try {
+      const datosEnCache = await AsyncStorage.getItem('@datos_formulario');
+      if (datosEnCache !== null) {
+        const datos = JSON.parse(datosEnCache);
+
+        // Aquí enviarías los datos a tu servidor o procesarlos como necesites
+        console.log('Enviando datos guardados:', datos);
+
+        // Una vez enviados, eliminar del caché
+        await AsyncStorage.removeItem('@datos_formulario');
+      }
+    } catch (error) {
+      console.error('Error al enviar datos guardados:', error);
+    }
+  };
+
+  const handleEnviar = async () => {
+    try {
+      // 1. Obtener la hora NTP desde la API
+      const response = await axios.get('http://timeapi.io/api/Time/current/zone?timeZone=UTC');
+      const horaNTP = new Date(response.data.dateTime); // Convertir la respuesta a objeto Date
+      const horaSeleccionada = selectedTime; // Hora seleccionada por el usuario
+  
+      // 2. Calcular la diferencia entre horas en minutos
+      const diferenciaMs = Math.abs(horaSeleccionada - horaNTP);
+      const diferenciaMinutos = diferenciaMs / 1000 / 60;
+  
+      // 3. Mostrar resultados en la consola
+      console.log('Hora NTP:', horaNTP);
+      console.log('Hora seleccionada por el usuario:', horaSeleccionada);
+      console.log(`Diferencia en minutos: ${diferenciaMinutos}`);
+  
+      if (diferenciaMinutos > 1) {
+        console.warn('¡Discrepancia detectada! La hora difiere de la hora global.');
+      } else {
+        console.log('Las horas coinciden.');
+      }
+  
+      // 4. Navegar a la pantalla de confirmación
+      navigation.navigate('ConfirmacionIdScreen', { horaInicio, id });
+    } catch (error) {
+      console.error('Error al obtener hora NTP:', error);
+    }
+  };
+  
+  const obtenerHoraNTP = async () => {
+    try {
+      const response = await axios.get('http://timeapi.io/api/Time/current/zone?timeZone=UTC');
+      console.log('Respuesta de la API:', response.data); // Imprimir la respuesta completa para verificar el formato
+  
+      // Usamos una propiedad diferente dependiendo de la respuesta
+      const horaNTP = response.data.dateTime; // Verifica si esta propiedad existe en la respuesta
+  
+      // Asegúrate de que 'horaNTP' sea un valor válido
+      if (!horaNTP) {
+        throw new Error('No se pudo obtener la hora de la respuesta');
+      }
+  
+      // Convertimos la hora en formato ISO a un objeto Date
+      const horaNTPObj = new Date(horaNTP);
+      console.log('Hora NTP:', horaNTPObj);
+  
+      // Si la hora NTP no es válida (NaN), lanzamos un error
+      if (isNaN(horaNTPObj)) {
+        throw new Error('La hora NTP es inválida');
+      }
+  
+      // Llamamos a la función para comparar las horas
+      const horaLocal = new Date();  // Hora local del dispositivo
+      console.log('Hora local:', horaLocal);
+  
+      compararHoras(horaLocal, horaNTPObj); // Llamamos a la función compararHoras
+    } catch (error) {
+      console.error('Error al obtener la hora NTP:', error);
+    }
+  };
+
+  // Función para comparar la hora local y la hora del servidor NTP
+const compararHoras = (horaLocal, horaNTP) => {
+  // Calculamos la diferencia entre las dos horas en milisegundos
+  const diferenciaEnMs = Math.abs(horaLocal - horaNTP);  // Usamos Math.abs() para obtener el valor absoluto
+
+  // Convertimos la diferencia de milisegundos a minutos
+  const diferenciaEnMinutos = diferenciaEnMs / 1000 / 60; // Dividimos entre 1000 (segundos) y entre 60 (minutos)
+
+  // Si la diferencia es mayor a 1 minuto, mostramos un mensaje
+  if (diferenciaEnMinutos > 1) {
+    console.warn('¡Advertencia! La hora local ha sido modificada.');
+    console.log(`Hora local: ${horaLocal}`);
+    console.log(`Hora NTP: ${horaNTP}`);
+  } else {
+    console.log('Las horas son consistentes');
+  }
+};
 
   // Solicitar permisos de cámara y ubicación en tiempo de ejecución
   const requestPermissions = async () => {
@@ -138,15 +292,16 @@ const IniciarTrabajo = () => {
     }
   };
 
-  // Función para manejar el cambio de texto en el comentario
   const onChangeComentario = (text) => {
     if (text.length <= maxCaracteres) {
       setComentario(text);
       setMensajeLimite(false);
+      guardarDatosEnCache(); // Guardar en el caché cada vez que cambia el comentario
     } else {
       setMensajeLimite(true);
     }
   };
+  
 
   return (
     <View style={tw`flex-1 bg-white`}>
@@ -266,7 +421,7 @@ const IniciarTrabajo = () => {
       <View style={tw`absolute bottom-0 left-0 right-0 bg-white p-5`}>
         <TouchableOpacity
           style={tw`bg-blue-900 py-3 rounded-full w-[140px] self-center`}
-          onPress={() => navigation.navigate('ConfirmacionIdScreen', { horaInicio, id })}
+          onPress={handleEnviar}
         >
           <Text style={tw`text-white text-center text-base font-bold`}>Enviar</Text>
         </TouchableOpacity>
