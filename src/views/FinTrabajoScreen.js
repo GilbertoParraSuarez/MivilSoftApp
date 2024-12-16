@@ -11,6 +11,7 @@ import CalendarIcon from '../icons/calendarIcon'; // Importando ícono de calend
 import TimeIcon from '../icons/timeIcon'; // Importando ícono de reloj
 import UploadIcon from '../icons/uploadIcon'; // Importando ícono de subida
 import CommentIcon from '../icons/commentIcon'; // Importando ícono de comentario
+import axios from 'axios';
 
 const FinTrabajoScreen = () => {
   const navigation = useNavigation();
@@ -26,7 +27,9 @@ const FinTrabajoScreen = () => {
   const [imageUri, setImageUri] = useState(null);
   const [ubicacion, setUbicacion] = useState(null);
   const [mensajeLimite, setMensajeLimite] = useState(false);
+  const horaFinalizacionObj = selectedTime; // Hora de finalización seleccionada
 
+ 
   const maxCaracteres = 200;
 
   const obtenerFechaActual = () => new Date().toLocaleDateString('es-ES');
@@ -37,7 +40,90 @@ const FinTrabajoScreen = () => {
     setFecha(obtenerFechaActual());
     setHoraFinalizacion(obtenerHoraActual());
     obtenerUbicacion();
+    obtenerHoraNTP(); // Llamamos a la función para verificar la hora NTP
   }, []);
+
+const obtenerHoraNTP = async () => {
+  try {
+    const response = await axios.get('http://timeapi.io/api/Time/current/zone?timeZone=UTC');
+    console.log('Respuesta de la API:', response.data); // Imprimir la respuesta completa para verificar el formato
+
+    // Usamos una propiedad diferente dependiendo de la respuesta
+    const horaNTP = response.data.dateTime; // Verifica si esta propiedad existe en la respuesta
+
+    // Asegúrate de que 'horaNTP' sea un valor válido
+    if (!horaNTP) {
+      throw new Error('No se pudo obtener la hora de la respuesta');
+    }
+
+    // Convertimos la hora en formato ISO a un objeto Date
+    const horaNTPObj = new Date(horaNTP);
+    console.log('Hora NTP:', horaNTPObj);
+
+    // Si la hora NTP no es válida (NaN), lanzamos un error
+    if (isNaN(horaNTPObj)) {
+      throw new Error('La hora NTP es inválida');
+    }
+
+    // Llamamos a la función para comparar las horas
+    const horaLocal = new Date();  // Hora local del dispositivo
+    console.log('Hora local:', horaLocal);
+
+    compararHoras(horaLocal, horaNTPObj); // Llamamos a la función compararHoras
+  } catch (error) {
+    console.error('Error al obtener la hora NTP:', error);
+  }
+};
+
+// Función para comparar la hora local y la hora del servidor NTP
+const compararHoras = (horaLocal, horaNTP) => {
+  // Calculamos la diferencia entre las dos horas en milisegundos
+  const diferenciaEnMs = Math.abs(horaLocal - horaNTP);  // Usamos Math.abs() para obtener el valor absoluto
+
+  // Convertimos la diferencia de milisegundos a minutos
+  const diferenciaEnMinutos = diferenciaEnMs / 1000 / 60; // Dividimos entre 1000 (segundos) y entre 60 (minutos)
+
+  // Si la diferencia es mayor a 1 minuto, mostramos un mensaje
+  if (diferenciaEnMinutos > 1) {
+    console.warn('¡Advertencia! La hora local ha sido modificada.');
+    console.log(`Hora local: ${horaLocal}`);
+    console.log(`Hora NTP: ${horaNTP}`);
+  } else {
+    console.log('Las horas son consistentes');
+  }
+};
+
+const handleEnviar = async () => {
+  try {
+    const response = await axios.get('http://timeapi.io/api/Time/current/zone?timeZone=UTC');
+    const horaNTP = response.data.dateTime;
+
+    if (!horaNTP) throw new Error('No se pudo obtener la hora de la respuesta NTP.');
+
+    const horaNTPObj = new Date(horaNTP); // Hora global NTP
+    const horaFinalizacionObj = selectedTime; // Hora de finalización seleccionada
+
+    const diferenciaEnMs = Math.abs(horaFinalizacionObj - horaNTPObj);
+    const diferenciaEnMinutos = diferenciaEnMs / 1000 / 60;
+
+    console.log('Hora NTP:', horaNTPObj);
+    console.log('Hora de Finalización:', horaFinalizacionObj);
+    console.log(`Diferencia en minutos: ${diferenciaEnMinutos}`);
+
+    // Mensaje por consola si hay discrepancia
+    if (diferenciaEnMinutos > 1) {
+      console.warn('¡Discrepancia detectada! La hora de finalización difiere de la hora global.');
+    } else {
+      console.log('Las horas coinciden dentro del rango aceptable.');
+    }
+
+    console.log('Formulario enviado con éxito.');
+    navigation.navigate('ConfirmacionScreen');
+  } catch (error) {
+    console.error('Error al obtener la hora NTP:', error);
+  }
+};
+
 
   const obtenerUbicacion = () => {
     Geolocation.getCurrentPosition(
@@ -236,7 +322,7 @@ const FinTrabajoScreen = () => {
       <View style={tw`absolute bottom-0 left-0 right-0 bg-white p-5`}>
         <TouchableOpacity
           style={tw`bg-blue-900 py-3 rounded-full w-[140px] self-center`}
-          onPress={() => navigation.navigate('ConfirmacionScreen')}
+          onPress={handleEnviar}
         >
           <Text style={tw`text-white text-center text-base font-bold`}>Enviar</Text>
         </TouchableOpacity>
