@@ -1,23 +1,49 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Image } from 'react-native';
+import React, {useState} from 'react';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  Image,
+  Alert,
+} from 'react-native';
 import UserIcon from '../icons/userIcon';
 import LockIcon from '../icons/lockIcon';
 import EyeIcon from '../icons/eyeIcon';
 import SlashEyeIcon from '../icons/slashEyeIcon';
 import tw from 'twrnc';
+import odoo from '../services/odooClient';
 
-const LoginScreen = ({ navigation }) => {
+const LoginScreen = ({navigation}) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false); // Estado para visibilidad de la contraseña
 
   const handleLogin = () => {
-    navigation.navigate('Dashboard');
+    //console.log('Verificación')
+    if (!username || !password) {
+      alert('Por favor ingrese sus credenciales');
+    }
+    odoo.username = username;
+    odoo.password = password;
+
+
+    odoo.connect(err => {
+      if (err) {
+        console.log('Error al iniciar sesión ' + err.message);
+        alert('Error al iniciar sesión ' + err.message);
+        return;
+      } else {
+        console.log('Conexión exitosa');
+        alert('Conexión exitosa');
+        navigation.navigate('Dashboard');
+      }
+    });
   };
 
   const togglePasswordVisibility = () => {
     setShowPassword(!showPassword); // Cambia la visibilidad de la contraseña
-    console.log("Estado de showPassword:", !showPassword);
+    console.log('Estado de showPassword:', !showPassword);
   };
 
   return (
@@ -34,7 +60,8 @@ const LoginScreen = ({ navigation }) => {
         style={tw`w-25 h-25 mb-5`}
       />
 
-      <View style={tw`flex-row items-center border border-gray-300 rounded-lg px-2 mb-5 w-4/5 h-12`}>
+      <View
+        style={tw`flex-row items-center border border-gray-300 rounded-lg px-2 mb-5 w-4/5 h-12`}>
         <UserIcon width={20} height={20} color="#000080" style={tw`mr-2`} />
         <TextInput
           style={tw`flex-1 h-full text-gray-700`}
@@ -44,7 +71,8 @@ const LoginScreen = ({ navigation }) => {
         />
       </View>
 
-      <View style={tw`flex-row items-center border border-gray-300 rounded-lg px-2 mb-5 w-4/5 h-12`}>
+      <View
+        style={tw`flex-row items-center border border-gray-300 rounded-lg px-2 mb-5 w-4/5 h-12`}>
         <LockIcon width={20} height={20} color="#000080" style={tw`mr-2`} />
         <TextInput
           style={tw`flex-1 h-full text-gray-700`}
@@ -64,7 +92,9 @@ const LoginScreen = ({ navigation }) => {
         </TouchableOpacity>
       </View>
 
-      <TouchableOpacity style={tw`bg-blue-800 py-3 px-12 rounded-full mt-5`} onPress={handleLogin}>
+      <TouchableOpacity
+        style={tw`bg-blue-800 py-3 px-12 rounded-full mt-5`}
+        onPress={handleLogin}>
         <Text style={tw`text-white text-base font-bold`}>Ingreso</Text>
       </TouchableOpacity>
     </View>
