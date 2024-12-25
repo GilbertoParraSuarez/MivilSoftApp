@@ -20,7 +20,7 @@ const LoginScreen = ({navigation}) => {
   const [showPassword, setShowPassword] = useState(false); // Estado para visibilidad de la contraseña
 
   const handleLogin = () => {
-    //console.log('Verificación')
+    console.log('Verificación')
     if (!username || !password) {
       alert('Por favor ingrese sus credenciales');
     }
