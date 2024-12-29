@@ -14,11 +14,13 @@ import FallaInternet from "./src/views/FallaInternet";
 import GaleriaAdvertencia from "./src/views/GaleriaAdvertencia";
 import ReporteAdvertencia from "./src/views/ReporteAdvertencia";
 import ErrorCamara from "./src/views/ErrorCamara";
-
-
+import TicketList from "./src/views/ticket_helper";
+import AddTicket from "./src/views/addTicket";
+import UpdateTicket from "./src/views/updateTicket";
 const Stack = createStackNavigator();
 
 export default function App() {
+
   return (
     <NavigationContainer>
       <Stack.Navigator initialRouteName="Login">
@@ -35,6 +37,9 @@ export default function App() {
         <Stack.Screen name="GaleriaAdvertencia" component={GaleriaAdvertencia} options={{headerShown: false}}/>
         <Stack.Screen name="ReporteAdvertencia" component={ReporteAdvertencia} options={{headerShown: false}}/>
         <Stack.Screen name="ErrorCamara" component={ErrorCamara} options={{headerShown: false}}/>
+        <Stack.Screen name="TicketList" component={TicketList} options={{ title: 'Lista de Tickets' }} />
+        <Stack.Screen name="AddTicket" component={AddTicket} options={{ title: 'Agregar Ticket' }} />
+        <Stack.Screen name="UpdateTicket" component={UpdateTicket} options={{ title: 'Editar Ticket' }} />
       </Stack.Navigator>
     </NavigationContainer>
   );

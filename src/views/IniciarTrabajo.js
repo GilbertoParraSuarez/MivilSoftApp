@@ -172,7 +172,8 @@ const IniciarTrabajo = () => {
       console.error('Error al obtener hora NTP:', error);
     }
   };
-  
+
+
   const obtenerHoraNTP = async () => {
     try {
       const response = await axios.get('http://timeapi.io/api/Time/current/zone?timeZone=UTC');
@@ -415,6 +416,15 @@ const compararHoras = (horaLocal, horaNTP) => {
             </View>
           )}
         </View>
+        {/* Botón de Enviar */}
+      <View style={tw`absolute bottom-0 left-0 right-0 bg-white p-5`}>
+        <TouchableOpacity
+          style={tw`bg-blue-900 py-3 rounded-full w-[140px] self-center`}
+          onPress={() => navigation.navigate('TicketList')}
+        >
+          <Text style={tw`text-white text-center text-base font-bold`}>Ticket Helpdesk</Text>
+        </TouchableOpacity>
+      </View>
       </ScrollView>
 
       {/* Botón de Enviar */}
