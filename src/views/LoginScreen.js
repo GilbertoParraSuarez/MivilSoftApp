@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, {useState, useContext} from 'react';
 import {
   View,
   Text,
@@ -13,36 +13,38 @@ import EyeIcon from '../icons/eyeIcon';
 import SlashEyeIcon from '../icons/slashEyeIcon';
 import tw from 'twrnc';
 import odoo from '../services/odooClient';
+import { AuthContext } from '../context/AuthContext';
 
 const LoginScreen = ({navigation}) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false); // Estado para visibilidad de la contraseña
+  const [showPassword, setShowPassword] = useState(false); 
+  const { login } = useContext(AuthContext);
 
   const handleLogin = () => {
-    console.log('Verificación')
     if (!username || !password) {
       alert('Por favor ingrese sus credenciales');
+      return;
     }
+
     odoo.username = username;
     odoo.password = password;
 
-
     odoo.connect(err => {
       if (err) {
-        console.log('Error al iniciar sesión ' + err.message);
-        alert('Error al iniciar sesión ' + err.message);
+        console.error('Error al iniciar sesión:', err.message);
+        alert('Error al iniciar sesión');
         return;
-      } else {
-        console.log('Conexión exitosa');
-        alert('Conexión exitosa');
-        navigation.navigate('Dashboard');
       }
+
+      login(username, password); // Guarda las credenciales en el contexto
+      //Alert.alert('Conexión exitosa', 'Sesión iniciada correctamente');
+      navigation.navigate('Dashboard');
     });
   };
 
   const togglePasswordVisibility = () => {
-    setShowPassword(!showPassword); // Cambia la visibilidad de la contraseña
+    setShowPassword(!showPassword); 
     console.log('Estado de showPassword:', !showPassword);
   };
 

@@ -1,4 +1,4 @@
-import odoo from "./odoo_service";
+import odoo from "./odooClient";
 
 const getTickets = async (filters = [], fields = [], limit = 50, offset = 0) => {
   return new Promise((resolve, reject) => {

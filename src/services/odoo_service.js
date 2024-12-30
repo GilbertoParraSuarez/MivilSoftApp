@@ -5,7 +5,7 @@ const odoo = new Odoo({
     port:8069,
     database:'odoo',
     username:'admin',
-    password:'admin'
+    password:'admin',
 });
 
 export default odoo;

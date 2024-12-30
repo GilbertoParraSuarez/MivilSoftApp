@@ -1,3 +1,22 @@
 {
-  "extends": "@react-native/typescript-config/tsconfig.json"
+  "extends": "@react-native/typescript-config/tsconfig.json",
+  "compilerOptions": {
+    "baseUrl": "./",                     // Configura la base de las rutas
+    "paths": {
+      "@context/*": ["src/context/*"],   // Alias para la carpeta context
+      "@components/*": ["src/components/*"], // Alias para componentes
+      "@screens/*": ["src/screens/*"],  // Alias para pantallas
+      "@services/*": ["src/services/*"] // Alias para servicios
+    },
+    "strict": true,                      // Activa comprobaciones estrictas
+    "esModuleInterop": true,             // Permite importaciones de módulos CommonJS
+    "skipLibCheck": true,                // Omite la verificación de tipado de las bibliotecas
+    "forceConsistentCasingInFileNames": true, // Asegura que las importaciones respeten el uso de mayúsculas/minúsculas
+    "moduleResolution": "node",         // Resolver módulos como Node.js
+    "noImplicitAny": false,             // Permite tipos `any` implícitos
+    "jsx": "react-native",              // Configura JSX para React Native
+    "lib": ["esnext"]                   // Usa las bibliotecas modernas
+  },
+  "include": ["src/**/*"],               // Archivos a incluir
+  "exclude": ["node_modules", "babel.config.js", "metro.config.js"] // Archivos/carpeta a excluir
 }

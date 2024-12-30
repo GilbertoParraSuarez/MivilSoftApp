@@ -1,4 +1,4 @@
-import odoo from "./odoo_service";
+import odoo from './odooClient';
 
 const getTypes = async () => {
   return new Promise((resolve, reject) => {
@@ -8,13 +8,18 @@ const getTypes = async () => {
         return reject(err);
       }
 
-      odoo.search_read('helpdesk.type', { domain: [], fields: ['id', 'name'] }, (error, result) => {
-        if (error) {
-          console.error('Error al obtener tipos de tickets (types):', error.message);
-          return reject(error);
+      // Buscar los tipos de tickets en el modelo 'helpdesk.type'
+      odoo.search_read(
+        'helpdesk.type',
+        { domain: [], fields: ['id', 'name'] },
+        (error, result) => {
+          if (error) {
+            console.error('Error al obtener tipos de tickets (types):', error.message);
+            return reject(error);
+          }
+          resolve(result); 
         }
-        resolve(result);
-      });
+      );
     });
   });
 };

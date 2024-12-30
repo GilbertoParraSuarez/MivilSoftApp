@@ -1,20 +1,26 @@
-import odoo from "./odoo_service";
+import odoo from './odooClient';
+import { useContext } from 'react';
+import { AuthContext } from '../context/AuthContext';
 
-const getProducts = async () => {
+const getProducts = async (odooInstance) => {
   return new Promise((resolve, reject) => {
-    odoo.connect((err) => {
+    odooInstance.connect((err) => {
       if (err) {
         console.error('Error al conectar con Odoo:', err.message);
         return reject(err);
       }
 
-      odoo.search_read('product.template', { domain: [], fields: ['id', 'name'] }, (error, result) => {
-        if (error) {
-          console.error('Error al obtener lso productos:', error.message);
-          return reject(error);
+      odooInstance.search_read(
+        'product.template',
+        { domain: [], fields: ['id', 'name'] },
+        (error, result) => {
+          if (error) {
+            console.error('Error al obtener los productos:', error.message);
+            return reject(error);
+          }
+          resolve(result);
         }
-        resolve(result);
-      });
+      );
     });
   });
 };

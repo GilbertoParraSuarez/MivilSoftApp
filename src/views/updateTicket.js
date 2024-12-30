@@ -17,9 +17,12 @@ import customService from '../services/customService';
 import tagService from '../services/tagService';
 import typeService from '../services/typeService';
 import productService from '../services/productService';
+import useOdooConfiguration from '../services/odoConfiguration';
+
 
 const UpdateTicket = ({route, navigation}) => {
   const {ticket} = route.params;
+  const odoo = useOdooConfiguration();
 
   const [stages, setStages] = useState([]);
   const [stage, setStage] = useState(ticket.stage_id[0] || 1);
@@ -112,11 +115,11 @@ const UpdateTicket = ({route, navigation}) => {
   
   useEffect(() => {
     Promise.all([
-      stageService.getStages(),
-      customService.getCustoms(),
-      tagService.getTags(),
-      typeService.getTypes(),
-      productService.getProducts(),
+      stageService.getStages(odoo),
+      customService.getCustoms(odoo),
+      tagService.getTags(odoo),
+      typeService.getTypes(odoo),
+      productService.getProducts(odoo),
     ])
       .then(([stageData, customData, tagData, typeData, productData]) => {
         setStages(stageData);
@@ -129,7 +132,7 @@ const UpdateTicket = ({route, navigation}) => {
         console.error('Error al cargar datos:', error.message);
         Alert.alert('Error', 'No se pudieron cargar los datos.');
       });
-  }, []);
+  }, [odoo]);
 
   const openModal = (options, field, setter) => {
     setCurrentOptions(options);

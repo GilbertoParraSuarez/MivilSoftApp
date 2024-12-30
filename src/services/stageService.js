@@ -1,5 +1,4 @@
-import odoo from "./odoo_service";
-
+import odoo from './odooClient';
 
 const getStages = async () => {
   return new Promise((resolve, reject) => {
@@ -9,13 +8,17 @@ const getStages = async () => {
         return reject(err);
       }
 
-      odoo.search_read('ticket.stage', { domain: [], fields: ['id', 'name'] }, (error, result) => {
-        if (error) {
-          console.error('Error al obtener fases:', error.message);
-          return reject(error);
+      odoo.search_read(
+        'ticket.stage',
+        { domain: [], fields: ['id', 'name'] },
+        (error, result) => {
+          if (error) {
+            console.error('Error al obtener las etapas:', error.message);
+            return reject(error);
+          }
+          resolve(result);
         }
-        resolve(result);
-      });
+      );
     });
   });
 };

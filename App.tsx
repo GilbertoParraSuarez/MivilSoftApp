@@ -17,12 +17,15 @@ import ErrorCamara from "./src/views/ErrorCamara";
 import TicketList from "./src/views/ticket_helper";
 import AddTicket from "./src/views/addTicket";
 import UpdateTicket from "./src/views/updateTicket";
+import { AuthProvider } from "./src/context/AuthContext";
+
 const Stack = createStackNavigator();
 
 export default function App() {
 
   return (
-    <NavigationContainer>
+    <AuthProvider>
+      <NavigationContainer>
       <Stack.Navigator initialRouteName="Login">
         <Stack.Screen name="Login" component={LoginScreen} options={{headerShown: false}}/>
         <Stack.Screen name="Dashboard" component={DashboardScreen} options={{headerShown: false}}/>
@@ -42,5 +45,7 @@ export default function App() {
         <Stack.Screen name="UpdateTicket" component={UpdateTicket} options={{ title: 'Editar Ticket' }} />
       </Stack.Navigator>
     </NavigationContainer>
+    </AuthProvider>
+    
   );
 }
