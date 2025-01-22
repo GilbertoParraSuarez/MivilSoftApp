@@ -12,6 +12,8 @@ import TimeIcon from '../icons/timeIcon'; // Importando ícono de reloj
 import UploadIcon from '../icons/uploadIcon'; // Importando ícono de subida
 import CommentIcon from '../icons/commentIcon'; // Importando ícono de comentario
 import axios from 'axios';
+import NetInfo from '@react-native-community/netinfo';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const FinTrabajoScreen = () => {
   const navigation = useNavigation();
@@ -28,8 +30,16 @@ const FinTrabajoScreen = () => {
   const [ubicacion, setUbicacion] = useState(null);
   const [mensajeLimite, setMensajeLimite] = useState(false);
   const horaFinalizacionObj = selectedTime; // Hora de finalización seleccionada
+  const [isConnected, setIsConnected] = useState(true);
+  const [conexionPerdida, setConexionPerdida] = useState(false);
+  const [horaIngresada, setHoraIngresada] = useState(''); // Nuevo estado para la hora ingresada por teclado
+  const [lastConnectionState, setLastConnectionState] = useState(null);
+  const [datosGuardadosEnCache, setDatosGuardadosEnCache] = useState(false);
+  const [conectadoAnteriormente, setConectadoAnteriormente] = useState(true);
 
- 
+
+
+
   const maxCaracteres = 200;
 
   const obtenerFechaActual = () => new Date().toLocaleDateString('es-ES');
@@ -37,92 +47,207 @@ const FinTrabajoScreen = () => {
     new Date().toLocaleTimeString('es-ES', { hour12: false });
 
   useEffect(() => {
+    const inicializarEstadoConexion = async () => {
+      const estadoInicial = await NetInfo.fetch();
+      setLastConnectionState(estadoInicial.isConnected);
+      setConectadoAnteriormente(estadoInicial.isConnected);
+    };
+    inicializarEstadoConexion();
+
+    const unsubscribe = NetInfo.addEventListener(state => {
+      if (state.isConnected !== lastConnectionState) {
+        if (!state.isConnected && conectadoAnteriormente) {
+          console.log('Detectada pérdida de conexión');
+          guardarDatosEnCache();
+          setDatosGuardadosEnCache(true);
+          setConectadoAnteriormente(false);
+        } else if (state.isConnected && !conectadoAnteriormente) {
+          console.log('Conexión restablecida');
+          enviarDatosGuardados();
+          setDatosGuardadosEnCache(false);
+          setConectadoAnteriormente(true);
+        }
+        setLastConnectionState(state.isConnected);
+      }
+    });
+
     setFecha(obtenerFechaActual());
     setHoraFinalizacion(obtenerHoraActual());
     obtenerUbicacion();
     obtenerHoraNTP(); // Llamamos a la función para verificar la hora NTP
-  }, []);
+    monitorConexión();
 
-const obtenerHoraNTP = async () => {
-  try {
-    const response = await axios.get('http://timeapi.io/api/Time/current/zone?timeZone=UTC');
-    console.log('Respuesta de la API:', response.data); // Imprimir la respuesta completa para verificar el formato
+    return () => unsubscribe();
+  }, [lastConnectionState, conectadoAnteriormente]);
 
-    // Usamos una propiedad diferente dependiendo de la respuesta
-    const horaNTP = response.data.dateTime; // Verifica si esta propiedad existe en la respuesta
+  const obtenerHoraNTP = async () => {
+    try {
+      const response = await axios.get('http://timeapi.io/api/Time/current/zone?timeZone=UTC');
+      console.log('Respuesta de la API:', response.data); // Imprimir la respuesta completa para verificar el formato
 
-    // Asegúrate de que 'horaNTP' sea un valor válido
-    if (!horaNTP) {
-      throw new Error('No se pudo obtener la hora de la respuesta');
+      // Usamos una propiedad diferente dependiendo de la respuesta
+      const horaNTP = response.data.dateTime; // Verifica si esta propiedad existe en la respuesta
+
+      // Asegúrate de que 'horaNTP' sea un valor válido
+      if (!horaNTP) {
+        throw new Error('No se pudo obtener la hora de la respuesta');
+      }
+
+      // Convertimos la hora en formato ISO a un objeto Date
+      const horaNTPObj = new Date(horaNTP);
+      console.log('Hora NTP:', horaNTPObj);
+
+      // Si la hora NTP no es válida (NaN), lanzamos un error
+      if (isNaN(horaNTPObj)) {
+        throw new Error('La hora NTP es inválida');
+      }
+
+      // Llamamos a la función para comparar las horas
+      const horaLocal = new Date();  // Hora local del dispositivo
+      console.log('Hora local:', horaLocal);
+
+      compararHoras(horaLocal, horaNTPObj); // Llamamos a la función compararHoras
+    } catch (error) {
+      console.error('Error al obtener la hora NTP:', error);
     }
+  };
 
-    // Convertimos la hora en formato ISO a un objeto Date
-    const horaNTPObj = new Date(horaNTP);
-    console.log('Hora NTP:', horaNTPObj);
 
-    // Si la hora NTP no es válida (NaN), lanzamos un error
-    if (isNaN(horaNTPObj)) {
-      throw new Error('La hora NTP es inválida');
+
+
+  const monitorConexión = () => {
+    NetInfo.addEventListener(state => {
+      if (!state.isConnected) {
+        if (!conexionPerdida) {
+          Alert.alert('Conexión perdida', 'No hay conexión a Internet. Los datos se guardarán localmente.');
+          setConexionPerdida(true);
+        }
+        setIsConnected(false);
+      } else if (conexionPerdida && state.isConnected) {
+        Alert.alert('Conexión recuperada', 'La conexión se ha restablecido. Sincronizando formularios guardados...');
+        enviarFormulariosGuardados();
+        setConexionPerdida(false);
+        setIsConnected(true);
+      }
+    });
+  };
+
+  const guardarDatosEnCache = async () => {
+    console.log('Intentando guardar en caché tras pérdida de conexión');
+  
+    const datos = {
+      fecha: fecha || '',
+      horaFinalizacion: horaFinalizacion || '',
+      comentario: comentario || '',
+      ubicacion: ubicacion || null,
+      imageUri: imageUri || null,
+    };
+  
+    try {
+      await AsyncStorage.setItem('@datos_fin_trabajo', JSON.stringify(datos));
+      console.log('Datos guardados en caché con éxito:', datos);
+    } catch (error) {
+      console.error('Error al guardar en caché:', error);
     }
+  };
 
-    // Llamamos a la función para comparar las horas
-    const horaLocal = new Date();  // Hora local del dispositivo
-    console.log('Hora local:', horaLocal);
+  const camposCompletos = () => {
+    return (
+      fecha &&
+      horaFinalizacion &&
+      comentario &&
+      imageUri &&
+      comentario.length > 0 // Asegúrate de que el comentario no esté vacío
+    );
+  };
 
-    compararHoras(horaLocal, horaNTPObj); // Llamamos a la función compararHoras
-  } catch (error) {
-    console.error('Error al obtener la hora NTP:', error);
-  }
-};
 
-// Función para comparar la hora local y la hora del servidor NTP
-const compararHoras = (horaLocal, horaNTP) => {
-  // Calculamos la diferencia entre las dos horas en milisegundos
-  const diferenciaEnMs = Math.abs(horaLocal - horaNTP);  // Usamos Math.abs() para obtener el valor absoluto
 
-  // Convertimos la diferencia de milisegundos a minutos
-  const diferenciaEnMinutos = diferenciaEnMs / 1000 / 60; // Dividimos entre 1000 (segundos) y entre 60 (minutos)
+  const enviarFormulariosGuardados = async () => {
+    try {
+      const formulariosGuardados = JSON.parse(await AsyncStorage.getItem('formulariosOffline')) || [];
+      if (formulariosGuardados.length > 0) {
+        for (const form of formulariosGuardados) {
+          await axios.post('https://tu-servidor.com/api/formulario', form);
+        }
+        await AsyncStorage.removeItem('formulariosOffline');
+        Alert.alert('Sincronización exitosa', 'Todos los formularios guardados se han enviado correctamente.');
+      }
+    } catch (error) {
+      console.error('Error al sincronizar formularios guardados:', error);
+    }
+  };
 
-  // Si la diferencia es mayor a 1 minuto, mostramos un mensaje
-  if (diferenciaEnMinutos > 1) {
-    console.warn('¡Advertencia! La hora local ha sido modificada.');
-    console.log(`Hora local: ${horaLocal}`);
-    console.log(`Hora NTP: ${horaNTP}`);
-  } else {
-    console.log('Las horas son consistentes');
-  }
-};
 
-const handleEnviar = async () => {
-  try {
-    const response = await axios.get('http://timeapi.io/api/Time/current/zone?timeZone=UTC');
-    const horaNTP = response.data.dateTime;
+  // Función para comparar la hora local y la hora del servidor NTP
+  const compararHoras = (horaLocal, horaNTP) => {
+    if (!horaLocal || !horaNTP) {
+      console.error("Una de las horas no está definida");
+      return;
+    }
+    // Calculamos la diferencia entre las dos horas en milisegundos
+    const diferenciaEnMs = Math.abs(horaLocal - horaNTP);
 
-    if (!horaNTP) throw new Error('No se pudo obtener la hora de la respuesta NTP.');
-
-    const horaNTPObj = new Date(horaNTP); // Hora global NTP
-    const horaFinalizacionObj = selectedTime; // Hora de finalización seleccionada
-
-    const diferenciaEnMs = Math.abs(horaFinalizacionObj - horaNTPObj);
+    // Convertimos la diferencia de milisegundos a minutos
     const diferenciaEnMinutos = diferenciaEnMs / 1000 / 60;
 
-    console.log('Hora NTP:', horaNTPObj);
-    console.log('Hora de Finalización:', horaFinalizacionObj);
-    console.log(`Diferencia en minutos: ${diferenciaEnMinutos}`);
-
-    // Mensaje por consola si hay discrepancia
+    // Si la diferencia es mayor a 1 minuto, mostramos un mensaje
     if (diferenciaEnMinutos > 1) {
-      console.warn('¡Discrepancia detectada! La hora de finalización difiere de la hora global.');
+      console.warn('¡Advertencia! La hora local ha sido modificada.');
+      console.log(`Hora local: ${horaLocal}`);
+      console.log(`Hora NTP: ${horaNTP}`);
     } else {
-      console.log('Las horas coinciden dentro del rango aceptable.');
+      console.log('Las horas son consistentes');
+    }
+  };
+
+
+  const handleEnviar = async () => {
+    if (!camposCompletos()) {
+      Alert.alert(
+        'Formulario incompleto',
+        'Por favor, completa todos los campos antes de enviar.'
+      );
+      return;
     }
 
-    console.log('Formulario enviado con éxito.');
-    navigation.navigate('ConfirmacionScreen');
-  } catch (error) {
-    console.error('Error al obtener la hora NTP:', error);
-  }
-};
+    try {
+      // Obtener la hora global NTP
+      const response = await axios.get('http://timeapi.io/api/Time/current/zone?timeZone=UTC');
+      const horaNTP = new Date(response.data.dateTime);
+
+      if (isNaN(horaNTP)) {
+        throw new Error('La hora NTP obtenida es inválida.');
+      }
+
+      const normalizarHora = (date) => {
+        const nuevaHora = new Date(date);
+        nuevaHora.setSeconds(0, 0); // Establecer segundos y milisegundos en 0
+        return nuevaHora;
+      };
+
+      const horaFinalizacionNormalizada = normalizarHora(selectedTime); // Usa el estado actualizado
+      const horaNTPNormalizada = normalizarHora(horaNTP);
+
+      // Calcular diferencia en minutos
+      const diferenciaEnMs = Math.abs(horaFinalizacionNormalizada - horaNTPNormalizada);
+      const diferenciaEnMinutos = (diferenciaEnMs / 1000 / 60).toFixed(2);
+
+      console.log('Hora NTP:', horaNTPNormalizada);
+      console.log('Hora de Finalización:', horaFinalizacionNormalizada);
+      console.log(`Diferencia en minutos: ${diferenciaEnMinutos}`);
+
+      if (diferenciaEnMinutos > 1) {
+        console.warn('¡Discrepancia detectada! La hora de finalización difiere de la hora global.');
+      } else {
+        console.log('Las horas coinciden dentro del rango aceptable.');
+      }
+      navigation.navigate('ConfirmacionScreen');
+    } catch (error) {
+      console.error('Error al obtener la hora NTP:', error);
+      Alert.alert('Error', 'Ocurrió un problema al procesar la comparación de horas.');
+    }
+  };
 
 
   const obtenerUbicacion = () => {
@@ -139,16 +264,9 @@ const handleEnviar = async () => {
   };
 
   const requestPermissions = async () => {
-    const cameraPermission = await PermissionsAndroid.request(
-      PermissionsAndroid.PERMISSIONS.CAMERA
-    );
-    const locationPermission = await PermissionsAndroid.request(
-      PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION
-    );
-    return (
-      cameraPermission === PermissionsAndroid.RESULTS.GRANTED &&
-      locationPermission === PermissionsAndroid.RESULTS.GRANTED
-    );
+    const cameraPermission = await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.CAMERA);
+    const locationPermission = await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION);
+    return cameraPermission === PermissionsAndroid.RESULTS.GRANTED && locationPermission === PermissionsAndroid.RESULTS.GRANTED;
   };
 
   const openCamera = async () => {
@@ -157,56 +275,70 @@ const handleEnviar = async () => {
       Alert.alert('Permiso denegado', 'No tienes permiso para acceder a la cámara.');
       return;
     }
-
-    const options = { mediaType: 'photo', quality: 1 };
-    launchCamera(options, async response => {
-      if (response.didCancel) {
-        Alert.alert('Cancelado', 'No se tomó ninguna foto.');
-      } else if (response.errorCode) {
-        Alert.alert('Error', response.errorMessage);
-      } else if (response.assets && response.assets.length > 0) {
+  
+    const options = { mediaType: 'photo', saveToPhotos: true, quality: 1 };
+  
+    launchCamera(options, async (response) => {
+      if (response.assets && response.assets.length > 0) {
         const uri = response.assets[0].uri;
         setImageUri(uri);
-        await captureViewAndSave();
+  
+        // Guardar la imagen automáticamente después de tomar la foto
+        setTimeout(async () => {
+          await captureViewAndSave();  // Guardar con filtro
+        }, 500);
       }
     });
   };
+  
+
 
   const captureViewAndSave = async () => {
     try {
-      const uri = await viewShotRef.current.capture();
+      const uri = await viewShotRef.current.capture(); // Capturar la vista con el texto superpuesto
       const fileName = `captured_image_${Date.now()}.jpg`;
-      const newFilePath = `${RNFS.PicturesDirectoryPath}/${fileName}`;
+      const newFilePath = `${RNFS.PicturesDirectoryPath}/${fileName}`; // Guardar en la carpeta de imágenes en Android
+
+      // Mover el archivo capturado a la carpeta de imágenes
       await RNFS.moveFile(uri, newFilePath);
+
       Alert.alert('Éxito', `Imagen guardada en: ${newFilePath}`);
     } catch (error) {
       Alert.alert('Error', 'No se pudo guardar la imagen');
       console.error(error);
     }
   };
+  
+  
 
-  const onChangeComentario = text => {
+  const onChangeComentario = (text) => {
     if (text.length <= maxCaracteres) {
       setComentario(text);
       setMensajeLimite(false);
+      guardarDatosEnCache();  // Guardado automático
     } else {
       setMensajeLimite(true);
     }
   };
+  
 
   const onDateChange = (event, selectedDate) => {
     setShowDatePicker(false);
     if (selectedDate) {
       setFecha(selectedDate.toLocaleDateString('es-ES'));
+      guardarDatosEnCache();
     }
   };
-
+  
   const onTimeChange = (event, selectedTime) => {
     setShowTimePicker(false);
     if (selectedTime) {
-      setHoraFinalizacion(selectedTime.toLocaleTimeString('es-ES'));
+      setSelectedTime(selectedTime);
+      setHoraFinalizacion(selectedTime.toLocaleTimeString('es-ES', { hour12: false }));
+      guardarDatosEnCache();
     }
   };
+  
 
   return (
     <View style={tw`flex-1 bg-white`}>

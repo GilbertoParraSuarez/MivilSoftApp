@@ -5,14 +5,42 @@ import LockIcon from '../icons/lockIcon';
 import EyeIcon from '../icons/eyeIcon';
 import SlashEyeIcon from '../icons/slashEyeIcon';
 import tw from 'twrnc';
+import authService from '../services/authService';
 
 const LoginScreen = ({ navigation }) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false); // Estado para visibilidad de la contraseña
 
-  const handleLogin = () => {
-    navigation.navigate('Dashboard');
+  const handleLogin = async (username, password) => {
+    try {
+      // Llamar al servicio de autenticación
+      const result = await authService.authenticateUser(username, password);
+  
+      if (result.success) {
+        // Inicio de sesión exitoso
+        return {
+          success: true,
+          message: result.message,
+          user: result.user, // Información del usuario autenticado
+          
+        };
+        navigation.navigate('Dashboard');
+      } else {
+        // Credenciales incorrectas
+        return {
+          success: false,
+          message: result.message,
+        };
+      }
+    } catch (error) {
+      // Manejo de errores
+      console.error('Error en el handleLogin:', error.message);
+      return {
+        success: false,
+        message: 'Error en el servidor. Intente nuevamente más tarde.',
+      };
+    }
   };
 
   const togglePasswordVisibility = () => {

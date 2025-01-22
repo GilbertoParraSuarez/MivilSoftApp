@@ -144,18 +144,34 @@ const IniciarTrabajo = () => {
     }
   };
 
+  const camposCompletos = () => {
+    return (
+      fecha &&
+      horaInicio &&
+      comentario &&
+      imageUri &&
+      comentario.length > 0 // Asegúrate de que el comentario no esté vacío
+    );
+  };
+  
+
   const handleEnviar = async () => {
+    if (!camposCompletos()) {
+      Alert.alert(
+        'Formulario incompleto',
+        'Por favor, completa todos los campos antes de enviar.'
+      );
+      return;
+    }
+  
     try {
-      // 1. Obtener la hora NTP desde la API
       const response = await axios.get('http://timeapi.io/api/Time/current/zone?timeZone=UTC');
       const horaNTP = new Date(response.data.dateTime); // Convertir la respuesta a objeto Date
       const horaSeleccionada = selectedTime; // Hora seleccionada por el usuario
   
-      // 2. Calcular la diferencia entre horas en minutos
       const diferenciaMs = Math.abs(horaSeleccionada - horaNTP);
       const diferenciaMinutos = diferenciaMs / 1000 / 60;
   
-      // 3. Mostrar resultados en la consola
       console.log('Hora NTP:', horaNTP);
       console.log('Hora seleccionada por el usuario:', horaSeleccionada);
       console.log(`Diferencia en minutos: ${diferenciaMinutos}`);
@@ -166,12 +182,12 @@ const IniciarTrabajo = () => {
         console.log('Las horas coinciden.');
       }
   
-      // 4. Navegar a la pantalla de confirmación
       navigation.navigate('ConfirmacionIdScreen', { horaInicio, id });
     } catch (error) {
       console.error('Error al obtener hora NTP:', error);
     }
   };
+  
   
   const obtenerHoraNTP = async () => {
     try {

@@ -61,6 +61,15 @@ const ControlSoporteScreen = () => {
     }
   };
 
+  const camposCompletos = () => {
+    return (
+      horaSoporte && // Verifica que la hora esté seleccionada
+      comentario && // Verifica que el comentario no esté vacío
+      images.length > 0 // Verifica que al menos una imagen haya sido subida
+    );
+  };
+  
+
   // Función para abrir la cámara
   const openCamera = async () => {
     const hasPermission = await requestCameraPermission();
@@ -261,48 +270,63 @@ const calcularDistancia = (coord1, coord2) => {
 
 
 const handleEnviar = async () => {
+  if (!camposCompletos()) {
+    Alert.alert(
+      'Formulario incompleto',
+      'Por favor, completa todos los campos antes de enviar.'
+    );
+    return;
+  }
+
   try {
     console.log('Ubicación Real:', locationReal);
     console.log('Ubicación Ingresada:', newLocation);
 
+    // Verifica que ambas ubicaciones estén disponibles
     if (!locationReal || !newLocation) {
       Alert.alert('Error', 'No se pudieron obtener ambas ubicaciones.');
       return;
     }
 
-    // Cálculo de distancia
-    const distancia = calcularDistancia(locationReal, newLocation);
-    console.log(`Distancia entre ubicaciones: ${distancia.toFixed(2)} metros`);
+    // Cálculo de distancia entre ubicaciones
+    const distanciaEnMetros = calcularDistancia(locationReal, newLocation);
+    const distanciaEnKm = (distanciaEnMetros / 1000).toFixed(2); // Convertir a kilómetros y redondear a 2 decimales
+    console.log(`Distancia calculada: ${distanciaEnKm} kilómetros`);
 
-    const umbralMetros = 5000; // 5 kilómetros
-    if (distancia > umbralMetros) {
+    const umbralKm = 1; // Tolerancia de 1 kilómetro
+    if (distanciaEnKm > umbralKm) {
       console.warn('¡Advertencia! La ubicación ingresada difiere significativamente de la ubicación real.');
     } else {
       console.log('Las ubicaciones coinciden dentro del rango aceptable.');
     }
 
-    // Lógica original de hora NTP
+    // Obtención de hora NTP
     const response = await axios.get('http://timeapi.io/api/Time/current/zone?timeZone=UTC');
     const horaNTP = new Date(response.data.dateTime);
-    const diferenciaMs = Math.abs(selectedTime - horaNTP);
-    const diferenciaMinutos = diferenciaMs / 1000 / 60;
+    console.log('Hora NTP obtenida:', horaNTP);
 
-    console.log('Hora NTP:', horaNTP);
-    console.log('Hora de soporte seleccionada:', selectedTime);
-    console.log(`Diferencia en minutos: ${diferenciaMinutos}`);
+    // Diferencia de hora entre NTP y seleccionada
+    const diferenciaMs = Math.abs(selectedTime - horaNTP);
+    const diferenciaMinutos = (diferenciaMs / 1000 / 60).toFixed(2); // Convertir a minutos y redondear a 2 decimales
+
+    console.log('Hora seleccionada:', selectedTime);
+    console.log(`Diferencia de tiempo: ${diferenciaMinutos} minutos`);
 
     if (diferenciaMinutos > 1) {
-      console.warn('¡Advertencia! La hora difiere de la hora global.');
+      console.warn('¡Advertencia! La hora seleccionada difiere significativamente de la hora global.');
     } else {
-      console.log('Las horas coinciden.');
+      console.log('Las horas coinciden dentro del rango permitido.');
     }
 
+    // Navegar a la pantalla de confirmación si todo está correcto
     navigation.navigate('ConfirmacionScreen');
   } catch (error) {
     console.error('Error en handleEnviar:', error);
     Alert.alert('Error', 'Ocurrió un problema al procesar la información.');
   }
 };
+
+
 
 
 const obtenerHoraNTP = async () => {
